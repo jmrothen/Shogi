@@ -1,5 +1,6 @@
 from piece import *
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 
 # let's create a nice reference df so it's easy to visualize the board positions
@@ -29,8 +30,8 @@ def draw_shogi_board(piece_array=None, save_path=None):
         ax.plot([0, 9], [i, i], color='black')
         ax.plot([i, i], [0, 9], color='black')
 
-    # Set the x and y axis limits
-    ax.set_xlim(0, 9)
+    # Set the x and y-axis limits
+    ax.set_xlim(0, 12)
     ax.set_ylim(0, 9)
 
     # Remove the ticks
@@ -49,9 +50,21 @@ def draw_shogi_board(piece_array=None, save_path=None):
         ax.text(-0.5, i + 0.5, label, ha='center', va='center')
 
     # Add text to each tile
+    white_list = []
+    black_list = []
     for i in piece_array:
-        row, col = pos_to_xy(i.pos)
-        ax.text(col + .5, 8.5 - row, i.shorthand(), ha='center', va='center', fontsize=10)
+        if i.is_alive:
+            row, col = pos_to_xy(i.pos)
+            ax.text(col + .5, 8.5 - row, i.shorthand(), ha='center', va='center', fontsize=10)
+        else:
+            if i.color == 'w':
+                white_list = white_list.insert(0, i.shorthand())
+            elif i.color == 'b':
+                black_list = black_list.insert(0, i.shorthand())
+
+    # sort those lists
+    white_list.sort()
+    black_list.sort()
 
     # Add grid background
     ax.set_facecolor('beige')
@@ -62,6 +75,20 @@ def draw_shogi_board(piece_array=None, save_path=None):
     ax.plot([0, 0], [0, 9], color='black', linewidth=2)
     ax.plot([9, 9], [0, 9], color='black', linewidth=2)
 
+    # Draw boxes on the right
+    top_box = patches.Rectangle((9, 6), 3, 3, linewidth=1, edgecolor='black', facecolor='ivory')
+    mid_box = patches.Rectangle((9, 3), 3, 3, linewidth=1, edgecolor='black', facecolor='white')
+    bottom_box = patches.Rectangle((9, 0), 3, 3, linewidth=1, edgecolor='black', facecolor='ivory')
+    ax.add_patch(top_box)
+    ax.add_patch(mid_box)
+    ax.add_patch(bottom_box)
+
+    # Add text to the boxes (optional)
+    ax.text(10.5, 7.5, ', '.join(white_list), ha='center', va='center')
+    ax.text(10.5, 1.5, ', '.join(black_list), ha='center', va='center')
+    ax.text(9.1, 0.2, 'Black', ha='left', va='center', fontsize=8, fontfamily='sans-serif', fontstyle='italic')
+    ax.text(9.1, 8.8, 'White', ha='left', va='center', fontsize=8, fontfamily='sans-serif', fontstyle='italic')
+
     plt.gca().set_aspect('equal', adjustable='box')
 
     if save_path:
@@ -69,4 +96,5 @@ def draw_shogi_board(piece_array=None, save_path=None):
 
     plt.show()
 
-# draw_shogi_board(save_path='shogiboard.jpeg')
+
+draw_shogi_board(save_path='shogiboard.jpeg')
