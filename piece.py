@@ -40,6 +40,14 @@ def is_pos(num):
         return []
 
 
+# take position, return the 0-index row column
+def pos_to_xy(pos):
+    pos = clean_coord(pos)
+    row = math.floor((pos - 1) / 9)
+    col = (pos - 1) % 9
+    return [row, col]
+
+
 # class for Pieces
 class Piece:
     def __init__(self, color, role, pos, is_upgraded=False, is_alive=True):
@@ -245,9 +253,9 @@ class Piece:
     def shorthand(self):
         match (self.role, self.is_upgraded):
             case (*a, False):
-                out = f"{a}"
+                out = ''.join(a)
             case (*a, True):
-                out = f"{a}+"
+                out = ''.join(a) + '+'
             case _:
                 out = "error"
         return out
