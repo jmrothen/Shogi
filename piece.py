@@ -1,4 +1,43 @@
-from board import *
+import numpy as np
+import pandas as pd
+import math
+import re
+
+
+# let's create functions to map from a coordinate (a7) to a board vector position
+def coord_to_pos(coord):
+    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
+    letter = re.search(r"[a-z]", coord).group(0)
+    number = int(re.search(r"[0-9]", coord).group(0))
+    row = letters.index(letter) + 1
+    col = 10 - number
+    pos = (row - 1) * 9 + col
+    return pos
+
+
+# and a function that maps backward if ever needed
+def pos_to_coord(pos):
+    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
+    row = math.ceil(pos / 9)
+    row = letters[row - 1]
+    col = 10 - (pos % 9)
+    return f"{row}{col}"
+
+
+def clean_coord(position):
+    if type(position) is str:
+        return coord_to_pos(coord=position)
+    else:
+        return position
+
+
+def is_pos(num):
+    if num > 0:
+        return True
+    elif num < 0:
+        return False
+    else:
+        return []
 
 
 # class for Pieces
