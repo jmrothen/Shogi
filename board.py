@@ -8,10 +8,6 @@ board = np.repeat(0, 81)
 # because the board is an array, we'll depict everything with integers
 # therefore we need a map from piece name to number in board
 # dictionary for piece representation in array
-piece_dict = {
-    'p': 1, 'g': 2, 's': 3, 'l': 4, 'n': 5, 'r': 6, 'b': 7,
-    'k': 8, 'p+': 9, 's+': 10, 'n+': 11, 'l+': 12, 'r+': 13, 'b+': 14
-}
 
 # let's create a nice reference df so it's easy to visualize the board positions
 boardref = pd.DataFrame([[1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -37,7 +33,7 @@ boardref.index = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
 
 
 # create a function that maps the board vector to a more visual df
-def printb(board_print =board):
+def printb(board_print=board):
     # reformat into a dataframe
     pp = pd.DataFrame(np.array([
         board_print[0:9], board_print[9:18], board_print[18:27],
@@ -72,14 +68,16 @@ def pos_to_coord(pos):
     return f"{row}{col}"
 
 
-# create a way to evaluate if a position is empty or not
-def check_pos(pos):
-    global board
-    # if the input is a coord, we map it to position
-    if type(pos) is str:
-        pos = coord_to_pos(pos)
-    # check if a piece is in that position
-    if board[pos - 1] != 0:
-        return 1
+def clean_coord(position):
+    if type(position) is str:
+        return coord_to_pos(coord=position)
     else:
-        return 0
+        return position
+
+def is_pos(num):
+    if num > 0:
+        return True
+    elif num < 0:
+        return False
+    else:
+        return []

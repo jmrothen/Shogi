@@ -3,28 +3,23 @@ from board import *
 
 # class for Pieces
 class Piece:
-    def __init__(self, color, role, pos, image=None, is_upgraded=False, is_alive = True):
+    def __init__(self, color, role, pos, is_upgraded=False, is_alive=True):
         self.color = color
         self.role = role
-        if type(pos) is str:
-            self.pos = coord_to_pos(pos)
-        else:
-            self.pos = pos
-        self.image = image
+        self.pos = clean_coord(pos)
+        # self.image = image
         self.is_upgraded = is_upgraded
-        self.status = is_alive
-        
+        self.is_alive = is_alive
 
     """
     def __str__(self):
         return f"{self.color} {self.role} at {self.pos}"
     """
 
-    def can_move(self):
+    def legal_moves(self):
         moves = pd.DataFrame([])
         # pawns
-        if self.role == 'p':
-
+        if self.role == 'p' and not self.is_upgraded:
             if self.color == 'b':
                 moves = pd.DataFrame([self.pos - 9])
             elif self.color == 'w':
@@ -54,7 +49,7 @@ class Piece:
             return moves
 
         # golds
-        if self.role in ['g', 's+', 'n+', 'l+', 'p+']:
+        if self.role in ['g'] or (self.role in ['s', 'n', 'l', 'p'] and self.is_upgraded):
             if self.color == 'b':
                 moves = pd.DataFrame([self.pos - 1, self.pos + 1,
                                       self.pos - 10, self.pos - 9,
@@ -142,7 +137,7 @@ class Piece:
             return moves
 
         # dragon (r+)
-        if self.role == 'r+':
+        if self.role == 'r' and self.is_upgraded:
             # north
             no = pd.DataFrame([self.pos - 9, self.pos - 18, self.pos - 27,
                                self.pos - 36, self.pos - 45, self.pos - 54,
@@ -167,7 +162,7 @@ class Piece:
             return moves
 
         # horse (b+)
-        if self.role == 'b+':
+        if self.role == 'b' and self.is_upgraded:
             # nw
             nw = pd.DataFrame([self.pos - 10, self.pos - 20, self.pos - 30,
                                self.pos - 40, self.pos - 50, self.pos - 60,
@@ -191,6 +186,35 @@ class Piece:
             moves = moves[moves[0] >= 1]
             moves = moves[moves[0] <= 81]
             return moves
+
+    def kill(self):
+        # swap colors
+        if self.color == 'w':
+            self.color = 'b'
+        else:
+            self.color = 'w'
+        # move to dead
+        self.is_alive = False
+
+    def promote(self):
+        self.is_upgraded = True
+
+    def place(self, pos):
+        self.pos = pos
+        self.is_alive = True
+
+    def shorthand(self):
+        match (self.role, self.is_upgraded):
+            case (*a, False):
+                out = f"{a}"
+            case (*a, True):
+                out = f"{a}+"
+            case _:
+                out = "error"
+        return out
+
+
+# end class stuff
 
 
 def create_piece_array():
@@ -247,70 +271,97 @@ def create_piece_array():
     ]
     return piece_array
 
-############################### START HERE
+
+# function to check a pos (bool)
+def check_pos(piece_array, pos):
+    for i in piece_array:
+        if i.pos == pos and i.is_alive:
+            return True
+    return False
+
+
 # function to find what piece is at position (pos)
-
-
-# function to take a piece, and place it on board
-def place_piece(piece, pos):
-    global board
-    if check_pos(pos) == 1:
-        ValueError("position is occupied")
+def get_occupier(piece_array, pos):
+    for i in piece_array:
+        if i.pos == pos and i.is_alive:
+            return piece_array.index(i)
 
 
 # function to perform a move
-def move_piece(piece, pos):
-    global board
+def move_piece(piece_array, piece, pos):
+    # safety check for dead piece
+    if not piece.is_alive:
+        ValueError("illegal move: dead piece")
 
-    if type(piece) == str:
-        piece = coord_to_pos(piece)
-    if type(piece) == int:
-        for i in white_active + black_active:
-            if i.pos == piece:
-                piece = i
-                break
+    # verify positional input is in the format we want
+    pos = clean_coord(pos)
 
-    pcol = piece.color
-    tcol = ''
-    tpiece = ''
+    # check if move is legal right off the bat
+    if pos not in piece.legal_moves():
+        ValueError("illegal move: not allowed")
 
-    # if the input is a coord, we map it to position
-    if type(pos) == str:
-        pos = coord_to_pos(pos)
+    # check if this is a passing move which requires a pass-through check (Only happens for lances, rooks and bishops)
+    if piece.role in ['r', 'b'] or (piece.role == 'l' and not piece.is_upgraded):
+        # grab the directional movement value
+        mod = pos - piece.pos
 
-    # first, check if move is possible
-    if pos in piece.can_move().values:
-        move = 1
-        # check position
-        # if you have a friend on that square, it says no
-        if check_pos(pos) == 1:
-            for i in white_active:
-                if i.pos == pos:
-                    tpiece = i
-                    tcol = 'w'
-                    break
-            if tcol == '':
-                for j in black_active:
-                    if j.pos == pos:
-                        tpiece = j
-                        tcol = 'b'
-                        break
-            if tcol == pcol:
-                move = 0
+        # grab list of potential directional movement values
+        new_mods = [i - piece.pos for i in piece.legal_moves()]
+
+        # filter to directional movements with lower distance than move of interest, and in same polarity (pos/neg)
+        new_mods = [i for i in new_mods if (abs(i) < abs(mod) and is_pos(i) == is_pos(mod))]
+
+        # if are moves still remaining...
+        if new_mods:
+            # default case here is horizontal movement
+            mod_rate = 1
+
+            # we'll refine the exact directional movement
+            if mod % 8 == 0 and piece.pos % 9 != 0:
+                # positive slope diagonal
+                mod_rate = 8
+            elif mod % 9 == 0:
+                # vertical
+                mod_rate = 9
+            elif mod % 10 == 0 and piece.pos % 9 != 1:
+                # negative slope diagonal
+                mod_rate = 10
+
+            # first consider horizontal case ...
+            new_mods2 = []
+            if mod_rate == 1:
+                # grab the pieces column
+                if piece.pos % 9 == 0:
+                    pcol = 9
+                else:
+                    pcol = piece.pos % 9
+                # filter to pieces in the direction we're interested (positive or negative)
+                if is_pos(mod):
+                    # restrict to answers in the same row
+                    new_mods2 = [i for i in new_mods if ((9 - pcol) >= i > 0)]
+                elif not is_pos(mod):
+                    # restrict to answers in the same row
+                    new_mods2 = [i for i in new_mods if (1 - pcol) <= i < 0]
+            # non-horizontal case
+            else:
+                # grab only the people in that line
+                new_mods2 = [i for i in new_mods if i % mod_rate == 0]
+
+            # if we still have items left...
+            if new_mods2:
+                # check each location, if its occupied, we error, otherwise continue
+                for j in new_mods2:
+                    relative_pos = piece.pos + j
+                    if check_pos(piece_array, relative_pos):
+                        ValueError("illegal move: blocked")
+
+    # now we check if the position is occupied
+    if check_pos(piece_array, pos):
+        occupier = piece_array[get_occupier(piece_array, pos)]
+        if occupier.color() == piece.color():
+            ValueError("illegal move: friendly fire")
+        else:
+            occupier.kill()
+            piece.place(pos=pos)
     else:
-        move = 0
-
-    # move piece there
-    if move == 1:
-        board[piece.pos - 1] = 0
-        piece.pos = pos
-        board[pos - 1] = piece_dict[piece.role]
-        if tcol == 'w':
-            white_active.remove(tpiece)
-            white_pocket.append(tpiece)
-        elif tcol == 'b':
-            black_active.remove(tpiece)
-            black_pocket.append(tpiece)
-        return 1
-    else:
-        return 0
+        piece.place(pos=pos)
