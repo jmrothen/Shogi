@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 
-# let's create a nice reference df so it's easy to visualize the board positions
+# let's create a nice reference df, so it's easy to visualize the board positions
 def boardref():
     board_ref = pd.DataFrame([[1, 2, 3, 4, 5, 6, 7, 8, 9],
                               [10, 11, 12, 13, 14, 15, 16, 17, 18],
@@ -97,4 +97,4 @@ def draw_shogi_board(piece_array=None, save_path=None):
     plt.show()
 
 
-draw_shogi_board(save_path='shogiboard.jpeg')
+# draw_shogi_board(save_path='shogiboard.jpeg')
