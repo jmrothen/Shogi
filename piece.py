@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import math
 import re
@@ -58,181 +57,56 @@ class Piece:
         self.is_upgraded = is_upgraded
         self.is_alive = is_alive
 
-    """
+    # add a simple function that prints the piece's traits
     def __str__(self):
-        return f"{self.color} {self.role} at {self.pos}"
-    """
+        color_long = "Black" if self.color == 'b' else "White"
+        upgraded_status = " promoted " if self.is_upgraded else ""
+        match self.role:
+            case 'p': role = "pawn"
+            case 'r': role = "rook"
+            case 'b': role = "bishop"
+            case 'l': role = "lance"
+            case 'n': role = "knight"
+            case 's': role = "silver"
+            case 'g': role = "gold"
+            case 'k': role = "king"
+        alive_status = f"at {pos_to_coord(self.pos)}" if self.is_alive else "dead"
+        return f"{color_long} {upgraded_status}{self.role} {alive_status}"
 
     def legal_moves(self):
-        moves = pd.DataFrame([])
-        # pawns
+        direction = -9 if self.color == 'b' else 9
+        moves = []
+
         if self.role == 'p' and not self.is_upgraded:
+            moves.append(self.pos + direction)
+        elif self.role == 'n':
+            moves.extend([self.pos + direction * 2 - 1, self.pos + direction * 2 + 1])
+        elif self.role == 'k':
+            moves.extend([self.pos + i for i in [-1, 1, -10, -9, -8, 8, 9, 10]])
+        elif self.role in ['g'] or (self.role in ['s', 'n', 'l', 'p'] and self.is_upgraded):
             if self.color == 'b':
-                moves = pd.DataFrame([self.pos - 9])
+                moves.extend([self.pos + i for i in [-1, 1, -10, -9, -8, 9]])
             elif self.color == 'w':
-                moves = pd.DataFrame([self.pos + 9])
-            moves = moves[moves[0] >= 1]
-            moves = moves[moves[0] <= 81]
-            return moves
-
-        # knights
-        if self.role == 'n':
+                moves.extend([self.pos + i for i in [1, -1, 10, 9, 8, -9]])
+        elif self.role == 's':
             if self.color == 'b':
-                moves = pd.DataFrame([self.pos - 17, self.pos - 19])
+                moves.extend([self.pos + i for i in [-10, -9, -8, 8, 10]])
             elif self.color == 'w':
-                moves = pd.DataFrame([self.pos + 17, self.pos + 19])
-            moves = moves[moves[0] >= 1]
-            moves = moves[moves[0] <= 81]
-            return moves
+                moves.extend([self.pos + i for i in [10, 9, 8, -8, -10]])
+        elif self.role == 'l':
+            moves.extend([self.pos + direction * i for i in range(1, 10)])
+        elif self.role in ['b', 'r', 'r+', 'b+']:
+            for i in range(1, 10):
+                if self.role in ['b', 'b+']:
+                    moves.extend([self.pos + i * (-10), self.pos + i * (-8), self.pos + i * 10, self.pos + i * 8])
+                if self.role in ['r', 'r+']:
+                    moves.extend([self.pos + i * (-9), self.pos + i * (-1), self.pos + i * 1, self.pos + i * 9])
+            if self.role in ['r+', 'b+']:
+                moves.extend([self.pos + i for i in [-1, 1, -9, 9]])
 
-        # king
-        if self.role == 'k':
-            moves = pd.DataFrame([self.pos - 1, self.pos + 1,
-                                  self.pos - 10, self.pos - 9,
-                                  self.pos - 8, self.pos + 8,
-                                  self.pos + 10, self.pos + 9])
-            moves = moves[moves[0] >= 1]
-            moves = moves[moves[0] <= 81]
-            return moves
-
-        # golds
-        if self.role in ['g'] or (self.role in ['s', 'n', 'l', 'p'] and self.is_upgraded):
-            if self.color == 'b':
-                moves = pd.DataFrame([self.pos - 1, self.pos + 1,
-                                      self.pos - 10, self.pos - 9,
-                                      self.pos - 8, self.pos + 9])
-            elif self.color == 'w':
-                moves = pd.DataFrame([self.pos - 1, self.pos + 1,
-                                      self.pos + 10, self.pos + 9,
-                                      self.pos + 8, self.pos - 9])
-            moves = moves[moves[0] >= 1]
-            moves = moves[moves[0] <= 81]
-            return moves
-
-        # silver
-        if self.role == 's':
-            if self.color == 'b':
-                moves = pd.DataFrame([self.pos - 10, self.pos - 9,
-                                      self.pos - 8, self.pos + 8,
-                                      self.pos + 10])
-            elif self.color == 'w':
-                moves = pd.DataFrame([self.pos + 10, self.pos + 9,
-                                      self.pos + 8, self.pos - 8,
-                                      self.pos - 10])
-            moves = moves[moves[0] >= 1]
-            moves = moves[moves[0] <= 81]
-            return moves
-
-        # lance
-        if self.role == 'l':
-            if self.color == 'b':
-                moves = pd.DataFrame([self.pos - 9, self.pos - 18, self.pos - 27,
-                                      self.pos - 36, self.pos - 45, self.pos - 60,
-                                      self.pos - 70, self.pos - 80])
-            elif self.color == 'w':
-                moves = pd.DataFrame([self.pos + 9, self.pos + 18, self.pos + 27,
-                                      self.pos + 36, self.pos + 45, self.pos + 60,
-                                      self.pos + 70, self.pos + 80])
-            moves = moves[moves[0] >= 1]
-            moves = moves[moves[0] <= 81]
-            return moves
-
-        # bishop
-        if self.role == 'b':
-            # nw
-            nw = pd.DataFrame([self.pos - 10, self.pos - 20, self.pos - 30,
-                               self.pos - 40, self.pos - 50, self.pos - 60,
-                               self.pos - 70, self.pos - 80])
-            # ne
-            ne = pd.DataFrame([self.pos - 8, self.pos - 16, self.pos - 24,
-                               self.pos - 32, self.pos - 40, self.pos - 48,
-                               self.pos - 56, self.pos - 64])
-            # se
-            se = pd.DataFrame([self.pos + 10, self.pos + 20, self.pos + 30,
-                               self.pos + 40, self.pos + 50, self.pos + 60,
-                               self.pos + 70, self.pos + 80])
-            # sw
-            sw = pd.DataFrame([self.pos + 8, self.pos + 16, self.pos + 24,
-                               self.pos + 32, self.pos + 40, self.pos + 48,
-                               self.pos + 56, self.pos + 64])
-            moves = pd.concat([nw, ne, se, sw], ignore_index=True)
-            moves = moves[moves[0] >= 1]
-            moves = moves[moves[0] <= 81]
-            return moves
-
-        # rook
-        if self.role == 'r':
-            # north
-            no = pd.DataFrame([self.pos - 9, self.pos - 18, self.pos - 27,
-                               self.pos - 36, self.pos - 45, self.pos - 54,
-                               self.pos - 63, self.pos - 72])
-            # west
-            we = pd.DataFrame([self.pos - 1, self.pos - 2, self.pos - 3,
-                               self.pos - 4, self.pos - 5, self.pos - 6,
-                               self.pos - 7, self.pos - 8])
-            # east
-            ea = pd.DataFrame([self.pos + 1, self.pos + 2, self.pos + 3,
-                               self.pos + 4, self.pos + 5, self.pos + 6,
-                               self.pos + 7, self.pos + 8])
-            # south
-            so = pd.DataFrame([self.pos + 9, self.pos + 18, self.pos + 27,
-                               self.pos + 36, self.pos + 45, self.pos + 54,
-                               self.pos + 63, self.pos + 72])
-            moves = pd.concat([no, we, ea, so], ignore_index=True)
-            moves = moves[moves[0] >= 1]
-            moves = moves[moves[0] <= 81]
-            return moves
-
-        # dragon (r+)
-        if self.role == 'r' and self.is_upgraded:
-            # north
-            no = pd.DataFrame([self.pos - 9, self.pos - 18, self.pos - 27,
-                               self.pos - 36, self.pos - 45, self.pos - 54,
-                               self.pos - 63, self.pos - 72])
-            # west
-            we = pd.DataFrame([self.pos - 1, self.pos - 2, self.pos - 3,
-                               self.pos - 4, self.pos - 5, self.pos - 6,
-                               self.pos - 7, self.pos - 8])
-            # east
-            ea = pd.DataFrame([self.pos + 1, self.pos + 2, self.pos + 3,
-                               self.pos + 4, self.pos + 5, self.pos + 6,
-                               self.pos + 7, self.pos + 8])
-            # south
-            so = pd.DataFrame([self.pos + 9, self.pos + 18, self.pos + 27,
-                               self.pos + 36, self.pos + 45, self.pos + 54,
-                               self.pos + 63, self.pos + 72])
-            dr = pd.DataFrame([self.pos + 10, self.pos - 10, self.pos + 8, self.pos - 8])
-            # combine
-            moves = pd.concat([no, we, ea, so, dr], ignore_index=True)
-            moves = moves[moves[0] >= 1]
-            moves = moves[moves[0] <= 81]
-            return moves
-
-        # horse (b+)
-        if self.role == 'b' and self.is_upgraded:
-            # nw
-            nw = pd.DataFrame([self.pos - 10, self.pos - 20, self.pos - 30,
-                               self.pos - 40, self.pos - 50, self.pos - 60,
-                               self.pos - 70, self.pos - 80])
-            # ne
-            ne = pd.DataFrame([self.pos - 8, self.pos - 16, self.pos - 24,
-                               self.pos - 32, self.pos - 40, self.pos - 48,
-                               self.pos - 56, self.pos - 64])
-            # se
-            se = pd.DataFrame([self.pos + 10, self.pos + 20, self.pos + 30,
-                               self.pos + 40, self.pos + 50, self.pos + 60,
-                               self.pos + 70, self.pos + 80])
-            # sw
-            sw = pd.DataFrame([self.pos + 8, self.pos + 16, self.pos + 24,
-                               self.pos + 32, self.pos + 40, self.pos + 48,
-                               self.pos + 56, self.pos + 64])
-            # horse
-            hr = pd.DataFrame([self.pos + 1, self.pos - 1, self.pos + 9, self.pos - 9])
-
-            moves = pd.concat([nw, ne, se, sw, hr], ignore_index=True)
-            moves = moves[moves[0] >= 1]
-            moves = moves[moves[0] <= 81]
-            return moves
+        # Filter out-of-bounds moves
+        moves = [move for move in moves if 1 <= move <= 81]
+        return pd.DataFrame(moves)
 
     def kill(self):
         # swap colors
@@ -243,8 +117,16 @@ class Piece:
         # move to dead
         self.is_alive = False
 
+    def can_promote(self):
+        if self.role in ['k', 'g']:
+            return False
+        return True
+
     def promote(self):
-        self.is_upgraded = True
+        if self.can_promote():
+            self.is_upgraded = True
+        else:
+            ValueError("illegal move: cannot promote this piece")
 
     def place(self, pos):
         self.pos = pos
@@ -265,57 +147,25 @@ class Piece:
 
 
 def create_piece_array():
-    piece_array = [
-        # pawns black
-        Piece('b', 'p', 'g9'),
-        Piece('b', 'p', 'g8'),
-        Piece('b', 'p', 'g7'),
-        Piece('b', 'p', 'g6'),
-        Piece('b', 'p', 'g5'),
-        Piece('b', 'p', 'g4'),
-        Piece('b', 'p', 'g3'),
-        Piece('b', 'p', 'g2'),
-        Piece('b', 'p', 'g1'),
-        # pawns white
-        Piece('w', 'p', 'c9'),
-        Piece('w', 'p', 'c8'),
-        Piece('w', 'p', 'c7'),
-        Piece('w', 'p', 'c6'),
-        Piece('w', 'p', 'c5'),
-        Piece('w', 'p', 'c4'),
-        Piece('w', 'p', 'c3'),
-        Piece('w', 'p', 'c2'),
-        Piece('w', 'p', 'c1'),
-        # rooks
-        Piece('b', 'r', 'h2'),
-        Piece('w', 'r', 'b8'),
-        # bishops
-        Piece('b', 'b', 'h8'),
-        Piece('w', 'b', 'b2'),
-        # lances
-        Piece('b', 'l', 'i1'),
-        Piece('b', 'l', 'i9'),
-        Piece('w', 'l', 'a9'),
-        Piece('w', 'l', 'a1'),
-        # knights
-        Piece('b', 'n', 'i8'),
-        Piece('b', 'n', 'i2'),
-        Piece('w', 'n', 'a2'),
-        Piece('w', 'n', 'a8'),
-        # silvers
-        Piece('b', 's', 'i7'),
-        Piece('b', 's', 'i3'),
-        Piece('w', 's', 'a3'),
-        Piece('w', 's', 'a7'),
-        # gold
-        Piece('b', 'g', 'i6'),
-        Piece('b', 'g', 'i4'),
-        Piece('w', 'g', 'a6'),
-        Piece('w', 'g', 'a4'),
-        # kings
-        Piece('b', 'k', 'i5'),
-        Piece('w', 'k', 'a5')
+    piece_types = [
+        ('b', 'p', ['g9', 'g8', 'g7', 'g6', 'g5', 'g4', 'g3', 'g2', 'g1']),
+        ('w', 'p', ['c9', 'c8', 'c7', 'c6', 'c5', 'c4', 'c3', 'c2', 'c1']),
+        ('b', 'r', ['h2']),
+        ('w', 'r', ['b8']),
+        ('b', 'b', ['h8']),
+        ('w', 'b', ['b2']),
+        ('b', 'l', ['i1', 'i9']),
+        ('w', 'l', ['a9', 'a1']),
+        ('b', 'n', ['i8', 'i2']),
+        ('w', 'n', ['a2', 'a8']),
+        ('b', 's', ['i7', 'i3']),
+        ('w', 's', ['a3', 'a7']),
+        ('b', 'g', ['i6', 'i4']),
+        ('w', 'g', ['a6', 'a4']),
+        ('b', 'k', ['i5']),
+        ('w', 'k', ['a5'])
     ]
+    piece_array = [Piece(color, role, pos) for color, role, positions in piece_types for pos in positions]
     return piece_array
 
 
