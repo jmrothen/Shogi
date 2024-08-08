@@ -54,7 +54,7 @@ def draw_shogi_board(piece_array=None, save_path=None):
     black_list = []
     for i in piece_array:
         if i.is_alive:
-            row, col = pos_to_xy(i.pos)
+            row, col = i.pos
             ax.text(col + .5, 8.5 - row, i.shorthand(), ha='center', va='center', fontsize=10)
         else:
             if i.color == 'w':
@@ -97,4 +97,4 @@ def draw_shogi_board(piece_array=None, save_path=None):
     plt.show()
 
 
-# draw_shogi_board(save_path='shogiboard.jpeg')
+draw_shogi_board(save_path='shogiboard.jpeg')
