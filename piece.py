@@ -52,7 +52,7 @@ class Piece:
     def __init__(self, color, role, pos, is_upgraded=False, is_alive=True):
         self.color = color
         self.role = role
-        self.pos = clean_coord(pos)
+        self.pos = pos_to_xy(pos)
         # self.image = image
         self.is_upgraded = is_upgraded
         self.is_alive = is_alive
@@ -62,51 +62,73 @@ class Piece:
         color_long = "Black" if self.color == 'b' else "White"
         upgraded_status = " promoted " if self.is_upgraded else ""
         match self.role:
-            case 'p': role = "pawn"
-            case 'r': role = "rook"
-            case 'b': role = "bishop"
-            case 'l': role = "lance"
-            case 'n': role = "knight"
-            case 's': role = "silver"
-            case 'g': role = "gold"
-            case 'k': role = "king"
+            case 'p':
+                role = "pawn"
+            case 'r':
+                role = "rook"
+            case 'b':
+                role = "bishop"
+            case 'l':
+                role = "lance"
+            case 'n':
+                role = "knight"
+            case 's':
+                role = "silver"
+            case 'g':
+                role = "gold"
+            case 'k':
+                role = "king"
         alive_status = f"at {pos_to_coord(self.pos)}" if self.is_alive else "dead"
         return f"{color_long} {upgraded_status}{self.role} {alive_status}"
 
     def legal_moves(self):
-        direction = -9 if self.color == 'b' else 9
         moves = []
+        new_moves = []
+        direction = -1 if self.color == 'b' else 1
 
         if self.role == 'p' and not self.is_upgraded:
-            moves.append(self.pos + direction)
-        elif self.role == 'n':
-            moves.extend([self.pos + direction * 2 - 1, self.pos + direction * 2 + 1])
-        elif self.role == 'k':
-            moves.extend([self.pos + i for i in [-1, 1, -10, -9, -8, 8, 9, 10]])
-        elif self.role in ['g'] or (self.role in ['s', 'n', 'l', 'p'] and self.is_upgraded):
-            if self.color == 'b':
-                moves.extend([self.pos + i for i in [-1, 1, -10, -9, -8, 9]])
-            elif self.color == 'w':
-                moves.extend([self.pos + i for i in [1, -1, 10, 9, 8, -9]])
-        elif self.role == 's':
-            if self.color == 'b':
-                moves.extend([self.pos + i for i in [-10, -9, -8, 8, 10]])
-            elif self.color == 'w':
-                moves.extend([self.pos + i for i in [10, 9, 8, -8, -10]])
-        elif self.role == 'l':
-            moves.extend([self.pos + direction * i for i in range(1, 10)])
-        elif self.role in ['b', 'r', 'r+', 'b+']:
-            for i in range(1, 10):
-                if self.role in ['b', 'b+']:
-                    moves.extend([self.pos + i * (-10), self.pos + i * (-8), self.pos + i * 10, self.pos + i * 8])
-                if self.role in ['r', 'r+']:
-                    moves.extend([self.pos + i * (-9), self.pos + i * (-1), self.pos + i * 1, self.pos + i * 9])
-            if self.role in ['r+', 'b+']:
-                moves.extend([self.pos + i for i in [-1, 1, -9, 9]])
+            new_moves = [(0, direction)]
 
-        # Filter out-of-bounds moves
-        moves = [move for move in moves if 1 <= move <= 81]
-        return pd.DataFrame(moves)
+        elif self.role == 'n':
+            new_moves = [(1, direction * 2), (-1, direction * 2)]
+
+        elif self.role == 'k':
+            new_moves = [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1)]
+
+        elif self.role in ['g'] or (self.role in ['s', 'n', 'l', 'p'] and self.is_upgraded):
+            new_moves = [(1, 0), (-1, 0), (0, -direction), (0, direction), (1, direction), (-1, direction)]
+
+        elif self.role == 's':
+            new_moves = [(0, direction), (1, direction), (-1, direction), (1, -direction), (-1, -direction)]
+
+        elif self.role == 'l':
+            new_moves = [(0, direction * i) for i in range(1, 9)]
+
+        elif self.role == 'r':
+            new_moves = ([(0, i) for i in range(1, 9)] +
+                         [(0, -i) for i in range(1, 9)] +
+                         [(i, 0) for i in range(1, 9)] +
+                         [(-i, 0) for i in range(1, 9)])
+            if self.is_upgraded:
+                new_moves.extend([(1, 1), (-1, 1), (1, -1), (-1, -1)])
+
+        elif self.role == 'b':
+            new_moves = ([(i, i) for i in range(1, 9)] +
+                         [(i, -i) for i in range(1, 9)] +
+                         [(-i, i) for i in range(1, 9)] +
+                         [(-i, -i) for i in range(1, 9)])
+            if self.is_upgraded:
+                new_moves.extend([(0, 1), (1, 0), (0, -1), (-1, 0)])
+
+        for i in new_moves:
+            x_change = i[0]
+            y_change = i[1]
+            moves.append(([self.pos[0] + x_change, self.pos[1] + y_change]))
+
+        # Remove entries with x or y < 0 or > 8
+        moves = [i for i in moves if 0 <= i[0] <= 8 and 0 <= i[1] <= 8]
+
+        return moves
 
     def kill(self):
         # swap colors
@@ -170,95 +192,66 @@ def create_piece_array():
 
 
 # function to check a pos (bool)
-def check_pos(piece_array, pos):
+def check_pos(piece_array, coord=None, pos=None):
+    location = coord if coord else pos_to_xy(clean_coord(pos))
     for i in piece_array:
-        if i.pos == pos and i.is_alive:
+        if i.pos == location and i.is_alive:
             return True
     return False
 
 
 # function to find what piece is at position (pos)
-def get_occupier(piece_array, pos):
+def get_occupier(piece_array, coord=None, pos=None):
+    location = coord if coord else pos_to_xy(clean_coord(pos))
     for i in piece_array:
-        if i.pos == pos and i.is_alive:
+        if i.pos == location and i.is_alive:
             return piece_array.index(i)
 
 
 # function to perform a move
-def move_piece(piece_array, piece, pos):
+def move_piece(piece_array, piece, coord=None, pos=None):
+    location = coord if coord else pos_to_xy(clean_coord(pos))
+
+    if not location:
+        raise ValueError("illegal move: no target location specified")
+
     # safety check for dead piece
     if not piece.is_alive:
-        ValueError("illegal move: dead piece")
-
-    # verify positional input is in the format we want
-    pos = clean_coord(pos)
+        raise ValueError("illegal move: dead piece")
 
     # check if move is legal right off the bat
-    if pos not in piece.legal_moves():
-        ValueError("illegal move: not allowed")
+    if location not in piece.legal_moves():
+        raise ValueError("illegal move: not allowed")
 
     # check if this is a passing move which requires a pass-through check (Only happens for lances, rooks and bishops)
     if piece.role in ['r', 'b'] or (piece.role == 'l' and not piece.is_upgraded):
-        # grab the directional movement value
-        mod = pos - piece.pos
-
-        # grab list of potential directional movement values
-        new_mods = [i - piece.pos for i in piece.legal_moves()]
-
-        # filter to directional movements with lower distance than move of interest, and in same polarity (pos/neg)
-        new_mods = [i for i in new_mods if (abs(i) < abs(mod) and is_pos(i) == is_pos(mod))]
-
-        # if are moves still remaining...
-        if new_mods:
-            # default case here is horizontal movement
-            mod_rate = 1
-
-            # we'll refine the exact directional movement
-            if mod % 8 == 0 and piece.pos % 9 != 0:
-                # positive slope diagonal
-                mod_rate = 8
-            elif mod % 9 == 0:
-                # vertical
-                mod_rate = 9
-            elif mod % 10 == 0 and piece.pos % 9 != 1:
-                # negative slope diagonal
-                mod_rate = 10
-
-            # first consider horizontal case ...
-            new_mods2 = []
-            if mod_rate == 1:
-                # grab the pieces column
-                if piece.pos % 9 == 0:
-                    pcol = 9
-                else:
-                    pcol = piece.pos % 9
-                # filter to pieces in the direction we're interested (positive or negative)
-                if is_pos(mod):
-                    # restrict to answers in the same row
-                    new_mods2 = [i for i in new_mods if ((9 - pcol) >= i > 0)]
-                elif not is_pos(mod):
-                    # restrict to answers in the same row
-                    new_mods2 = [i for i in new_mods if (1 - pcol) <= i < 0]
-            # non-horizontal case
-            else:
-                # grab only the people in that line
-                new_mods2 = [i for i in new_mods if i % mod_rate == 0]
-
-            # if we still have items left...
-            if new_mods2:
-                # check each location, if its occupied, we error, otherwise continue
-                for j in new_mods2:
-                    relative_pos = piece.pos + j
-                    if check_pos(piece_array, relative_pos):
-                        ValueError("illegal move: blocked")
+        # find out the direction of the move
+        x_dir = location[0] - piece.pos[0]
+        y_dir = location[1] - piece.pos[1]
+        if x_dir == 0:  # vertical move
+            direction = 1 if is_pos(y_dir) else -1
+            for i in range(1, abs(y_dir) - 1):
+                if check_pos(piece_array, coord=[piece.pos[0], piece.pos[1] + i * direction]):
+                    raise ValueError("illegal move: passing through a piece")
+        elif y_dir == 0:  # horizontal move
+            direction = 1 if is_pos(x_dir) else -1
+            for i in range(1, abs(x_dir) - 1):
+                if check_pos(piece_array, coord=[piece.pos[0] + i * direction, piece.pos[1]]):
+                    raise ValueError("illegal move: passing through a piece")
+        else:  # diagonal move
+            direction_x = 1 if is_pos(x_dir) else -1
+            direction_y = 1 if is_pos(y_dir) else -1
+            for i in range(1, abs(x_dir) - 1):
+                if check_pos(piece_array, coord=[piece.pos[0] + i * direction_x, piece.pos[1] + i * direction_y]):
+                    raise ValueError("illegal move: passing through a piece")
 
     # now we check if the position is occupied
-    if check_pos(piece_array, pos):
-        occupier = piece_array[get_occupier(piece_array, pos)]
+    if check_pos(piece_array, coord=location):
+        occupier = piece_array[get_occupier(piece_array, coord=location)]
         if occupier.color() == piece.color():
-            ValueError("illegal move: friendly fire")
+            raise ValueError("illegal move: friendly fire")
         else:
             occupier.kill()
-            piece.place(pos=pos)
+            piece.place(pos=location)
     else:
-        piece.place(pos=pos)
+        piece.place(pos=location)
