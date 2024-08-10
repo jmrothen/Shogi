@@ -138,11 +138,10 @@ class Piece:
             self.color = 'w'
         # move to dead
         self.is_alive = False
+        self.pos = [9, 9]
 
     def can_promote(self):
-        if self.role in ['k', 'g']:
-            return False
-        return True
+        return False if self.role in ['k', 'g'] else True
 
     def promote(self):
         if self.can_promote():
@@ -257,3 +256,11 @@ def move_piece(piece_array, index, coord=None, pos=None):
     else:
         piece.place(pos=location)
     return piece_array
+
+
+# function to grab the index of the first dead piece of a certain color and role
+def get_dead_piece(piece_array, color, role):
+    for i in piece_array:
+        if not i.is_alive and i.color == color and i.role == role:
+            return piece_array.index(i)
+    return None
