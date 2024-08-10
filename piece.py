@@ -87,22 +87,22 @@ class Piece:
         direction = -1 if self.color == 'b' else 1
 
         if self.role == 'p' and not self.is_upgraded:
-            new_moves = [(0, direction)]
+            new_moves = [(direction, 0)]
 
         elif self.role == 'n':
-            new_moves = [(1, direction * 2), (-1, direction * 2)]
+            new_moves = [(direction * 2, 1), (direction * 2, -1)]
 
         elif self.role == 'k':
-            new_moves = [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1)]
+            new_moves = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
         elif self.role in ['g'] or (self.role in ['s', 'n', 'l', 'p'] and self.is_upgraded):
-            new_moves = [(1, 0), (-1, 0), (0, -direction), (0, direction), (1, direction), (-1, direction)]
+            new_moves = [(1, 0), (-1, 0), (0, 1), (0, -1), (direction, 1), (direction, -1)]
 
         elif self.role == 's':
-            new_moves = [(0, direction), (1, direction), (-1, direction), (1, -direction), (-1, -direction)]
+            new_moves = [(direction, 0), (direction, 1), (direction, -1), (-direction, 1), (-direction, -1)]
 
         elif self.role == 'l':
-            new_moves = [(0, direction * i) for i in range(1, 9)]
+            new_moves = [(direction * i, 0) for i in range(1, 9)]
 
         elif self.role == 'r':
             new_moves = ([(0, i) for i in range(1, 9)] +
@@ -209,8 +209,9 @@ def get_occupier(piece_array, coord=None, pos=None):
 
 
 # function to perform a move
-def move_piece(piece_array, piece, coord=None, pos=None):
+def move_piece(piece_array, index, coord=None, pos=None):
     location = coord if coord else pos_to_xy(clean_coord(pos))
+    piece = piece_array[index]
 
     if not location:
         raise ValueError("illegal move: no target location specified")
@@ -230,28 +231,29 @@ def move_piece(piece_array, piece, coord=None, pos=None):
         y_dir = location[1] - piece.pos[1]
         if x_dir == 0:  # vertical move
             direction = 1 if is_pos(y_dir) else -1
-            for i in range(1, abs(y_dir) - 1):
+            for i in range(1, abs(y_dir)):
                 if check_pos(piece_array, coord=[piece.pos[0], piece.pos[1] + i * direction]):
                     raise ValueError("illegal move: passing through a piece")
         elif y_dir == 0:  # horizontal move
             direction = 1 if is_pos(x_dir) else -1
-            for i in range(1, abs(x_dir) - 1):
+            for i in range(1, abs(x_dir)):
                 if check_pos(piece_array, coord=[piece.pos[0] + i * direction, piece.pos[1]]):
                     raise ValueError("illegal move: passing through a piece")
         else:  # diagonal move
             direction_x = 1 if is_pos(x_dir) else -1
             direction_y = 1 if is_pos(y_dir) else -1
-            for i in range(1, abs(x_dir) - 1):
+            for i in range(1, abs(x_dir)):
                 if check_pos(piece_array, coord=[piece.pos[0] + i * direction_x, piece.pos[1] + i * direction_y]):
                     raise ValueError("illegal move: passing through a piece")
 
     # now we check if the position is occupied
     if check_pos(piece_array, coord=location):
         occupier = piece_array[get_occupier(piece_array, coord=location)]
-        if occupier.color() == piece.color():
+        if occupier.color == piece.color:
             raise ValueError("illegal move: friendly fire")
         else:
             occupier.kill()
             piece.place(pos=location)
     else:
         piece.place(pos=location)
+    return piece_array
