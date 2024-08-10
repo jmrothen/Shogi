@@ -10,6 +10,6 @@ pyvenv.cfg
 .venv
 pip-selfcheck.json
 .idea
-/Scrapped/.*
+Scrapped/.*
 .vscode
 __pycache__
