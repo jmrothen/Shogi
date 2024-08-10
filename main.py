@@ -1,5 +1,3 @@
-import math
-
 from board import *
 import sys
 import pygame
@@ -136,25 +134,25 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
 # initial safety variables
 selected_piece = None  # index of the clicked piece
 piece_array = create_piece_array()  # array of pieces
-error_text = None  # possible error text that i might draw on screen if needed
-se_pos = None  # tracked for selected piece to follow mouse
+error_text = None  # possible error text that I might draw on screen if needed
+se_pos = [None, None]  # tracked for selected piece to follow mouse
 
 
-
-def handle_input(event):
+def handle_input(input_event):
     global selected_piece
     global se_pos
     global error_text
     global piece_array
 
-    if event.type == QUIT:
+    if input_event.type == QUIT:
         pygame.quit()
         sys.exit()
-    elif event.type == MOUSEBUTTONDOWN:
+    elif input_event.type == MOUSEBUTTONDOWN:
         x, y = pygame.mouse.get_pos()
         print(x, y)
         x -= width_gap
         y -= height_gap_top
+        # note, when we add pockets, this will need to be changed
         if 0 <= x < board_width and 0 <= y < board_height:
             col = x // cell_size
             row = y // cell_size
@@ -174,7 +172,7 @@ def handle_input(event):
                 if check_pos(piece_array, coord=position):
                     selected_piece = get_occupier(piece_array, coord=position)
                     se_pos = pygame.mouse.get_pos()
-    if event.type == MOUSEMOTION:
+    if input_event.type == MOUSEMOTION:
         if selected_piece:
             se_pos = pygame.mouse.get_pos()
 
