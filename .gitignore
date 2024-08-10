@@ -13,3 +13,5 @@ pyvenv.cfg
 pip-selfcheck.json
 .idea
 /Scrapped/
+.vscode
+__pycache__
