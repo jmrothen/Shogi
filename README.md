@@ -1,5 +1,20 @@
 # Shogi
 
-I'm just trying to make a little shogi app in python
+## Attempt at making the game of Shogi in python
 
-maybe eventually try to port it into my discord bot 
+Everything is inprogress here
+
+
+## Files
+
+### Piece.py
+
+Declares the piece class and most of the helper functions
+
+### Board.py
+
+Has the code to create a png of the current board state. Designed to be used in a discord bot 
+
+### Main.py
+
+Has the pygame version of Shogi
