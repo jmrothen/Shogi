@@ -54,28 +54,33 @@ IVORY = (255, 255, 240)
 
 
 # Function to draw the Shogi board
-def draw_shogi_board_pygame(piece_array=None, save_path=None):
-    if not piece_array:
-        piece_array = create_piece_array()
+def draw_shogi_board_pygame(pa=None, save_path=None):
+    global selected_piece
+    global se_pos
+
+    if not pa:
+        global piece_array
+    else:
+        piece_array = pa
 
     # Fill background
     screen.fill(BEIGE)
 
     # Draw the board
-    pygame.draw.rect(screen, BLACK, (width_gap, height_gap_top, board_height, board_width), 6)
+    pygame.draw.rect(screen, BLACK, (width_gap, height_gap_top, board_height, board_width), 3)
     for i in range(1, 9):
         pygame.draw.line(screen, BLACK, (width_gap, height_gap_top + i * cell_size),
-                         (width_gap + board_height, height_gap_top + i * cell_size), 2)
+                         (width_gap + board_height, height_gap_top + i * cell_size), 1)
         pygame.draw.line(screen, BLACK, (width_gap + i * cell_size, height_gap_top),
-                         (width_gap + i * cell_size, height_gap_top + board_height), 2)
+                         (width_gap + i * cell_size, height_gap_top + board_height), 1)
 
     # make every third line thicker
     for i in range(1, 9):
         if i % 3 == 0:
             pygame.draw.line(screen, BLACK, (width_gap, height_gap_top + i * cell_size),
-                             (width_gap + board_height, height_gap_top + i * cell_size), 4)
+                             (width_gap + board_height, height_gap_top + i * cell_size), 2)
             pygame.draw.line(screen, BLACK, (width_gap + i * cell_size, height_gap_top),
-                             (width_gap + i * cell_size, height_gap_top + board_height), 4)
+                             (width_gap + i * cell_size, height_gap_top + board_height), 2)
 
     # Draw the pockets
     pygame.draw.rect(screen, IVORY, (pocket_gap, height_gap_top, pocket_width, pocket_height), 0)
@@ -88,20 +93,34 @@ def draw_shogi_board_pygame(piece_array=None, save_path=None):
                      (pocket_gap, height_gap_top + board_height - pocket_height, pocket_width, pocket_height), 2)
 
     # Font for text
-    font = pygame.font.SysFont(None, 20)
+    font = pygame.font.SysFont(None, 30)
 
     # Add labels for columns above the board
     for i in [9, 8, 7, 6, 5, 4, 3, 2, 1]:
         text = font.render(str(i), True, BLACK)
-        screen.blit(text, (width_gap + (9 - i) * cell_size + cell_size // 2, height_gap_top - cell_size // 7))
+        text_rect = text.get_rect(
+            center=(width_gap + (9 - i) * cell_size + cell_size // 2, height_gap_top - cell_size // 7))
+        screen.blit(text, text_rect)
 
     # Add labels for rows to the left of the board
     for i, letter in enumerate('abcdefghi', start=1):
         text = font.render(letter, True, BLACK)
-        screen.blit(text, (width_gap - cell_size // 9, height_gap_top + (i - 1) * cell_size + cell_size // 2))
+        text_rect = text.get_rect(
+            center=(width_gap - cell_size // 9, height_gap_top + (i - 1) * cell_size + cell_size // 2))
+        screen.blit(text, text_rect)
 
     # Draw the pieces
-    #### JACK YOURE HERE
+    for index, i in enumerate(piece_array):
+        if selected_piece and index == selected_piece:
+            text = pygame.font.SysFont(None, 50).render(i.shorthand(), True, BLACK)
+            text_rect = text.get_rect(center=(se_pos[0], se_pos[1]))
+            screen.blit(text, text_rect)
+        elif i.is_alive:
+            row, col = i.pos
+            text = pygame.font.SysFont(None, 50).render(i.shorthand(), True, BLACK)
+            text_rect = text.get_rect(center=(width_gap + col * cell_size + cell_size // 2,
+                                              height_gap_top + row * cell_size + cell_size // 2))
+            screen.blit(text, text_rect)
 
     # Update the display
     pygame.display.flip()
@@ -112,14 +131,56 @@ def draw_shogi_board_pygame(piece_array=None, save_path=None):
 
 
 # Example usage
-draw_shogi_board_pygame()
+# draw_shogi_board_pygame()
 
-# Main loop (for demonstration purposes)
-running = True
-while running:
+# initial safety variables
+selected_piece = None  # index of the clicked piece
+piece_array = create_piece_array()  # array of pieces
+error_text = None  # possible error text that i might draw on screen if needed
+se_pos = None  # tracked for selected piece to follow mouse
+
+
+
+def handle_input(event):
+    global selected_piece
+    global se_pos
+    global error_text
+    global piece_array
+
+    if event.type == QUIT:
+        pygame.quit()
+        sys.exit()
+    elif event.type == MOUSEBUTTONDOWN:
+        x, y = pygame.mouse.get_pos()
+        print(x, y)
+        x -= width_gap
+        y -= height_gap_top
+        if 0 <= x < board_width and 0 <= y < board_height:
+            col = x // cell_size
+            row = y // cell_size
+            position = [row, col]
+            print(position)
+            if selected_piece:
+                try:
+                    piece_array = move_piece(piece_array, index=selected_piece, coord=position)
+                    selected_piece = None
+                    se_pos = None
+                except ValueError as e:
+                    # if it doesn't work, we'll just reset the selected piece
+                    error_text = e
+                    selected_piece = None
+                    se_pos = None
+            else:
+                if check_pos(piece_array, coord=position):
+                    selected_piece = get_occupier(piece_array, coord=position)
+                    se_pos = pygame.mouse.get_pos()
+    if event.type == MOUSEMOTION:
+        if selected_piece:
+            se_pos = pygame.mouse.get_pos()
+
+
+# Run the game loop
+while True:
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-pygame.quit()
-sys.exit()
+        handle_input(event)
+        draw_shogi_board_pygame()
