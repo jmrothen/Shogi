@@ -3,6 +3,15 @@ import math
 import re
 
 
+# create a function break a gap into two equal-ish parts
+def adjusted_half_gap(dimension_one, dimension_two):
+    if dimension_one - dimension_two % 2 == 0:
+        return (dimension_one - dimension_two) / 2, (dimension_one - dimension_two) / 2
+    else:
+        return math.ceil((dimension_one - dimension_two) / 2), math.floor((dimension_one - dimension_two) / 2)
+
+
+
 # let's create functions to map from a coordinate (a7) to a board vector position
 def coord_to_pos(coord):
     letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
