@@ -69,20 +69,60 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
     # Fill background
     screen.fill(BEIGE)
 
+    # Highlight possible moves for the selected piece
     if selected_piece is not None:
-        # we will change the color of each cell which the selected piece can move to
-        if piece_array[selected_piece].is_alive:
-            for i in filter_moves(piece_array, selected_piece):
-                row, col = i
-                pygame.draw.rect(screen, (255, 204, 204),
-                                 (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1, cell_size - 1,
-                                  cell_size - 1), 0)
+
+        if check_flag:
+
+            # we will change the color of each cell which the selected piece can move to
+            if piece_array[selected_piece].is_alive:
+
+                # get the safe moves for the selected piece
+                safe_moves = check_safe_moves(piece_array, active_color)
+
+                safe_moves2 = []
+                for s in safe_moves:
+                    if s[0] == selected_piece:
+                        safe_moves2.append(s[1])
+
+                for i in filter_moves(piece_array, selected_piece):
+                    if i in safe_moves2:
+                        row, col = i
+                        pygame.draw.rect(screen, (255, 204, 204),
+                                         (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1,
+                                          cell_size - 1,
+                                          cell_size - 1), 0)
+            else:
+
+                # get the safe moves for the selected piece
+                safe_moves = check_safe_moves(piece_array, active_color, drop=True)
+
+                safe_moves2 = []
+                for s in safe_moves:
+                    if s[0] == selected_piece:
+                        safe_moves2.append(s[1])
+
+                for i in legal_drops(piece_array, selected_piece):
+                    if i in safe_moves2:
+                        row, col = i
+                        pygame.draw.rect(screen, (255, 204, 204),
+                                         (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1,
+                                          cell_size - 1,
+                                          cell_size - 1), 0)
         else:
-            for i in legal_drops(piece_array, selected_piece):
-                row, col = i
-                pygame.draw.rect(screen, (255, 204, 204),
-                                 (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1, cell_size - 1,
-                                  cell_size - 1), 0)
+            # we will change the color of each cell which the selected piece can move to
+            if piece_array[selected_piece].is_alive:
+                for i in filter_moves(piece_array, selected_piece):
+                    row, col = i
+                    pygame.draw.rect(screen, (255, 204, 204),
+                                     (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1, cell_size - 1,
+                                      cell_size - 1), 0)
+            else:
+                for i in legal_drops(piece_array, selected_piece):
+                    row, col = i
+                    pygame.draw.rect(screen, (255, 204, 204),
+                                     (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1, cell_size - 1,
+                                      cell_size - 1), 0)
 
     # Draw the game board
     pygame.draw.rect(screen, BLACK, (width_gap, height_gap_top, board_height, board_width), 3)
@@ -247,8 +287,6 @@ def game_over_screen(color):
     pygame.display.flip()
 
 
-
-
 # initial game-loop variables
 selected_piece = None  # index of the clicked piece
 piece_array = create_piece_array()  # array of pieces
@@ -293,10 +331,13 @@ def handle_input(input_event):
 
                         # consider the case where the player is in check
                         if check_flag:
-                            safe_moves = check_safe_moves(piece_array, active_color)
+
+                            # filter safe moves to drops!
+                            safe_moves = check_safe_moves(piece_array, active_color, drop=True)
                             for s in safe_moves:
                                 if s[0] == selected_piece and s[1] == position:
-                                    piece_array = move_piece(piece_array, index=selected_piece, coord=position, drop=True)
+                                    piece_array = move_piece(piece_array, index=selected_piece, coord=position,
+                                                             drop=True)
                                     selected_piece = None
                                     se_pos = None
                                     active_color = 'w' if active_color == 'b' else 'b'
