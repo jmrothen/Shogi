@@ -246,127 +246,152 @@ def handle_input(input_event):
     global error_text
     global piece_array
     global active_color
+    global check_flag
 
     if input_event.type == QUIT:
         pygame.quit()
         sys.exit()
+
     elif input_event.type == MOUSEBUTTONDOWN:
         x, y = pygame.mouse.get_pos()
         x2 = x - width_gap
         y2 = y - height_gap_top
+        # if the click is on the board...
         if 0 <= x2 < board_width and 0 <= y2 < board_height:
             col = x2 // cell_size
             row = y2 // cell_size
             position = [row, col]
 
-            ####################
-            # CASE: elected Piece
-            ####################
-
+            # If there is a piece selected...
             if selected_piece is not None:
+
                 # if it's coming from pocket, we'll try to drop it rather than use the move command
-
-                ##############################
-                # Case: Selected from Pocket
-                ############################
-
                 if not piece_array[selected_piece].is_alive:
                     try:
-                        if not check_flag:
-                            if position in legal_drops(piece_array, selected_piece):
-                                piece_array[selected_piece].place(position)
-                                selected_piece = None
-                                se_pos = None
-                                active_color = 'w' if active_color == 'b' else 'b'
-                                error_text = None
-                            else:
-                                raise ValueError("illegal move: target location is occupied")
+
+                        # Check if the drop is legal
+                        if position not in legal_drops(piece_array, selected_piece):
+                            raise ValueError("illegal move: not a legal drop")
+
+                        # consider the case where the player is in check
+                        if check_flag:
+                            safe_moves = check_safe_moves(piece_array, active_color)
+                            for s in safe_moves:
+                                if s[0] == selected_piece and s[1] == position:
+                                    piece_array = move_piece(piece_array, index=selected_piece, coord=position, drop=True)
+                                    selected_piece = None
+                                    se_pos = None
+                                    active_color = 'w' if active_color == 'b' else 'b'
+                                    error_text = None
+                                    check_flag = False  # remove the check!
+                                    break
+                            if selected_piece is not None:
+                                raise ValueError("illegal move: piece cannot stop check")
+
+                        # if the player is not in check, we can just drop the piece!
                         else:
-                            if position in legal_drops(piece_array, selected_piece):
-                                csm = check_safe_moves(piece_array, active_color)
-                                if selected_piece in csm:
-                                    # get the index of selected piece in csm
-                                    csm_index = csm.index(selected_piece)
-                                    if position in csm[csm_index][1]:
-                                        piece_array[selected_piece].place(position)
-                                        selected_piece = None
-                                        se_pos = None
-                                        active_color = 'w' if active_color == 'b' else 'b'
-                                        error_text = None
-                                    else:
-                                        raise ValueError("illegal move: move does not stop check")
-                                else:
-                                    raise ValueError("illegal move: piece cannot stop check")
-                            else:
-                                raise ValueError("illegal move: not a legal drop")
+                            piece_array = move_piece(piece_array, index=selected_piece, coord=position, drop=True)
+                            selected_piece = None
+                            se_pos = None
+                            active_color = 'w' if active_color == 'b' else 'b'
+                            error_text = None
+
+                    # catch the error and reset the selected piece if something fails
                     except ValueError as e:
                         error_text = e
                         selected_piece = None
                         se_pos = None
-                ###############################
-                # CASE: Selected from Board
-                ##############################
+
+                # if the piece is alive, we'll try to move it
                 else:
                     try:
-                        if not check_flag:
-                            # check if this move puts the king in check...
-                            if is_safe_king_move(piece_array, selected_piece, position):
-                                piece_array = move_piece(piece_array, index=selected_piece, coord=position)
-                                selected_piece = None
-                                se_pos = None
-                                active_color = 'w' if active_color == 'b' else 'b'
-                                error_text = None
-                            else:
-                                raise ValueError("illegal move: puts king in check")
+                        # first, check if the move would put the king in check (illegal)
+                        if not is_safe_king_move(piece_array, selected_piece, position):
+                            raise ValueError("illegal move: puts king in check")
+
+                        # next, check if the move is legal in general
+                        if position not in filter_moves(piece_array, selected_piece):
+                            raise ValueError("illegal move: not a legal move")
+
+                        # if the player is in check, we need to check if the move will stop the check
+                        if check_flag:
+
+                            # consider all the safe moves available to the player
+                            safe_moves = check_safe_moves(piece_array, active_color)
+                            for s in safe_moves:
+                                if s[0] == selected_piece and position == s[1]:
+                                    piece_array = move_piece(piece_array, index=selected_piece, coord=position)
+                                    selected_piece = None
+                                    se_pos = None
+                                    active_color = 'w' if active_color == 'b' else 'b'
+                                    error_text = None
+                                    check_flag = False  # remove the check!
+                                    break
+
+                            # if the piece+move were not found in the safe_move list, toss error
+                            if selected_piece is not None:
+                                raise ValueError("illegal move: move does not stop check")
+
+                        # if not in check, just go ahead and make the move!
                         else:
-                            csm = check_safe_moves(piece_array, active_color)
-                            csm_check = True
-                            for c in csm:
-                                c_index = c[0]
-                                if selected_piece == c_index:
-                                    # get the index of selected piece in csm
-                                    csm_index = csm.index(selected_piece)
-                                    if position in csm[csm_index][1]:
-                                        piece_array = move_piece(piece_array, index=selected_piece, coord=position)
-                                        selected_piece = None
-                                        se_pos = None
-                                        active_color = 'w' if active_color == 'b' else 'b'
-                                        error_text = None
-                                    else:
-                                        raise ValueError("illegal move: move does not stop check")
-                                else:
-                                    raise ValueError("illegal move: piece cannot stop check")
+                            piece_array = move_piece(piece_array, index=selected_piece, coord=position)
+                            selected_piece = None
+                            se_pos = None
+                            active_color = 'w' if active_color == 'b' else 'b'
+                            error_text = None
+
                     except ValueError as e:
-                        # if it doesn't work, we'll just reset the selected piece
                         error_text = e
                         selected_piece = None
                         se_pos = None
-            ############################
-            # CASE: No Piece Selected
-            ############################
+
+            # if there is no piece selected, we'll try to select one
             else:
-                if check_pos(piece_array, coord=position):
-                    occ_index = get_occupier(piece_array, coord=position)
-                    occ = piece_array[occ_index]
-                    if check_flag:
-                        csm = check_safe_moves(piece_array, active_color)
-                        # check if occ_index is one of the pieces in csm
-                        csm_check = True
-                        for c in csm:
-                            piece_index = c[0]
-                            if occ_index == piece_index:
+                try:
+                    # check if there's a piece where we clicked
+                    if check_pos(piece_array, coord=position):
+
+                        # get the index of the piece in the piece_array
+                        occ_index = get_occupier(piece_array, coord=position)
+                        occ = piece_array[occ_index]
+
+                        # first, check if that piece is the active player's piece
+                        if occ.color == active_color:
+
+                            # if the player is in check, we need to check if the piece can stop the check
+                            if check_flag:
+
+                                # grab the safe moves available to the player
+                                safe_moves = check_safe_moves(piece_array, active_color)
+
+                                # check if the piece clicked is one of the pieces in safe_moves
+                                for c in safe_moves:
+                                    piece_index = c[0]
+
+                                    # if it can, we'll select it
+                                    if occ_index == piece_index:
+                                        selected_piece = occ_index
+                                        se_pos = pygame.mouse.get_pos()
+                                        error_text = False
+                                        break
+
+                                # if piece could not stop check, toss error
+                                if selected_piece is None:
+                                    error_text = "illegal move: piece cannot stop check"
+
+                            else:
                                 selected_piece = occ_index
                                 se_pos = pygame.mouse.get_pos()
-                                error_text =False
-                                break
-                        if csm_check:
-                            error_text = "illegal move: piece cannot stop check"
-                    else:
-                        if occ.color == active_color:
-                            selected_piece = occ_index
-                            se_pos = pygame.mouse.get_pos()
+                                error_text = None
+
+                        # if not our piece, toss error
                         else:
                             error_text = "illegal move: not your piece"
+
+                    # If no piece there, just continue
+
+                except ValueError as e:
+                    error_text = e
 
         # next, we want to check if the click was in the top or bottom pocket
         elif pocket_gap <= x <= pocket_gap + pocket_width:
@@ -419,6 +444,5 @@ while True:
         else:
             check_flag = False
         handle_input(event)
-
 
         draw_shogi_board_pygame()
