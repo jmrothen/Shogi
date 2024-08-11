@@ -1,3 +1,5 @@
+import time
+
 from board import *
 import sys
 import pygame
@@ -52,6 +54,8 @@ GRAY = (128, 128, 128)
 
 
 # Function to draw the Shogi board
+
+
 def draw_shogi_board_pygame(pa=None, save_path=None):
     # reference global variables
     global selected_piece
@@ -64,6 +68,21 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
 
     # Fill background
     screen.fill(BEIGE)
+
+    if selected_piece is not None:
+        # we will change the color of each cell which the selected piece can move to
+        if piece_array[selected_piece].is_alive:
+            for i in filter_moves(piece_array, selected_piece):
+                row, col = i
+                pygame.draw.rect(screen, (255, 204, 204),
+                                 (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1, cell_size - 1,
+                                  cell_size - 1), 0)
+        else:
+            for i in legal_drops(piece_array, selected_piece):
+                row, col = i
+                pygame.draw.rect(screen, (255, 204, 204),
+                                 (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1, cell_size - 1,
+                                  cell_size - 1), 0)
 
     # Draw the game board
     pygame.draw.rect(screen, BLACK, (width_gap, height_gap_top, board_height, board_width), 3)
@@ -218,6 +237,7 @@ piece_array = create_piece_array()  # array of pieces
 error_text = None  # possible error text that I might draw on screen if needed
 se_pos = [None, None]  # tracked for selected piece to follow mouse
 active_color = 'b'  # black goes first
+check_flag = False
 
 
 def handle_input(input_event):
@@ -232,50 +252,121 @@ def handle_input(input_event):
         sys.exit()
     elif input_event.type == MOUSEBUTTONDOWN:
         x, y = pygame.mouse.get_pos()
-        print(x, y)
         x2 = x - width_gap
         y2 = y - height_gap_top
         if 0 <= x2 < board_width and 0 <= y2 < board_height:
-            x, y = x2, y2
-            col = x // cell_size
-            row = y // cell_size
+            col = x2 // cell_size
+            row = y2 // cell_size
             position = [row, col]
-            print(position)
-            if selected_piece:
+
+            ####################
+            # CASE: elected Piece
+            ####################
+
+            if selected_piece is not None:
                 # if it's coming from pocket, we'll try to drop it rather than use the move command
+
+                ##############################
+                # Case: Selected from Pocket
+                ############################
+
                 if not piece_array[selected_piece].is_alive:
                     try:
-                        if not check_pos(piece_array, coord=position):
-                            piece_array[selected_piece].place(position)
-                            selected_piece = None
-                            se_pos = None
-                            active_color = 'w' if active_color == 'b' else 'b'
-                            error_text = None
+                        if not check_flag:
+                            if position in legal_drops(piece_array, selected_piece):
+                                piece_array[selected_piece].place(position)
+                                selected_piece = None
+                                se_pos = None
+                                active_color = 'w' if active_color == 'b' else 'b'
+                                error_text = None
+                            else:
+                                raise ValueError("illegal move: target location is occupied")
                         else:
-                            raise ValueError("illegal move: target location is occupied")
+                            if position in legal_drops(piece_array, selected_piece):
+                                csm = check_safe_moves(piece_array, active_color)
+                                if selected_piece in csm:
+                                    # get the index of selected piece in csm
+                                    csm_index = csm.index(selected_piece)
+                                    if position in csm[csm_index][1]:
+                                        piece_array[selected_piece].place(position)
+                                        selected_piece = None
+                                        se_pos = None
+                                        active_color = 'w' if active_color == 'b' else 'b'
+                                        error_text = None
+                                    else:
+                                        raise ValueError("illegal move: move does not stop check")
+                                else:
+                                    raise ValueError("illegal move: piece cannot stop check")
+                            else:
+                                raise ValueError("illegal move: not a legal drop")
                     except ValueError as e:
                         error_text = e
                         selected_piece = None
                         se_pos = None
+                ###############################
+                # CASE: Selected from Board
+                ##############################
                 else:
                     try:
-                        piece_array = move_piece(piece_array, index=selected_piece, coord=position)
-                        selected_piece = None
-                        se_pos = None
-                        active_color = 'w' if active_color == 'b' else 'b'
-                        error_text = None
+                        if not check_flag:
+                            # check if this move puts the king in check...
+                            if is_safe_king_move(piece_array, selected_piece, position):
+                                piece_array = move_piece(piece_array, index=selected_piece, coord=position)
+                                selected_piece = None
+                                se_pos = None
+                                active_color = 'w' if active_color == 'b' else 'b'
+                                error_text = None
+                            else:
+                                raise ValueError("illegal move: puts king in check")
+                        else:
+                            csm = check_safe_moves(piece_array, active_color)
+                            csm_check = True
+                            for c in csm:
+                                c_index = c[0]
+                                if selected_piece == c_index:
+                                    # get the index of selected piece in csm
+                                    csm_index = csm.index(selected_piece)
+                                    if position in csm[csm_index][1]:
+                                        piece_array = move_piece(piece_array, index=selected_piece, coord=position)
+                                        selected_piece = None
+                                        se_pos = None
+                                        active_color = 'w' if active_color == 'b' else 'b'
+                                        error_text = None
+                                    else:
+                                        raise ValueError("illegal move: move does not stop check")
+                                else:
+                                    raise ValueError("illegal move: piece cannot stop check")
                     except ValueError as e:
                         # if it doesn't work, we'll just reset the selected piece
                         error_text = e
                         selected_piece = None
                         se_pos = None
+            ############################
+            # CASE: No Piece Selected
+            ############################
             else:
                 if check_pos(piece_array, coord=position):
-                    if piece_array[get_occupier(piece_array, coord=position)].color == active_color:
-                        selected_piece = get_occupier(piece_array, coord=position)
-                        se_pos = pygame.mouse.get_pos()
+                    occ_index = get_occupier(piece_array, coord=position)
+                    occ = piece_array[occ_index]
+                    if check_flag:
+                        csm = check_safe_moves(piece_array, active_color)
+                        # check if occ_index is one of the pieces in csm
+                        csm_check = True
+                        for c in csm:
+                            piece_index = c[0]
+                            if occ_index == piece_index:
+                                selected_piece = occ_index
+                                se_pos = pygame.mouse.get_pos()
+                                error_text =False
+                                break
+                        if csm_check:
+                            error_text = "illegal move: piece cannot stop check"
                     else:
-                        error_text = "illegal move: not your piece"
+                        if occ.color == active_color:
+                            selected_piece = occ_index
+                            se_pos = pygame.mouse.get_pos()
+                        else:
+                            error_text = "illegal move: not your piece"
 
         # next, we want to check if the click was in the top or bottom pocket
         elif pocket_gap <= x <= pocket_gap + pocket_width:
@@ -307,6 +398,9 @@ def handle_input(input_event):
                     piece = piece_map.get(pocket_position)
                     selected_piece = get_dead_piece(piece_array, pocket, piece)
                     se_pos = pygame.mouse.get_pos()
+        else:
+            selected_piece = None
+            se_pos = None
 
     if input_event.type == MOUSEMOTION:
         if selected_piece:
@@ -316,5 +410,15 @@ def handle_input(input_event):
 # Run the game loop
 while True:
     for event in pygame.event.get():
+        if is_in_checkmate(piece_array, active_color):
+            time.sleep(5)
+            pygame.quit()
+            sys.exit()
+        elif is_in_check(piece_array, active_color):
+            check_flag = True
+        else:
+            check_flag = False
         handle_input(event)
+
+
         draw_shogi_board_pygame()
