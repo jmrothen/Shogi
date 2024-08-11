@@ -25,6 +25,7 @@ Has the pygame version of Shogi
 
 - ~~highlight possible moves if a piece is selected~~
   - ~~if this piece is from pocket, highlight all legal drops~~
+  - ~~adjust highlighted moves if in check~~
 - rotate white pieces?
   - As opposed to just coloring them differently 
 - rotate board?
@@ -33,12 +34,12 @@ Has the pygame version of Shogi
 - Game status checks
   - ~~Check~~
     - Cute little pop-up that says "Check!" when a player is in check
-    - Need to fix the logic of only allowing moves that stop the check
+    - ~~Need to fix the logic of only allowing moves that stop the check~~
     - Highlight pieces causing check
-    - Make sure every move is does not put players king in danger
+    - ~~Make sure every move does not put players king in danger~~
   - ~~Checkmate~~
-    - Cute little pop-up that says "Checkmate!" when a player is in checkmate
-  - Game over menu pop-up
+    - ~~Cute little pop-up that says "Checkmate!" when a player is in checkmate~~
+  - ~~Game over pop-up~~
     - Game over menu
     - Option to return to main menu
     - Option to restart game
