@@ -141,7 +141,7 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
     # cycle through pieces
     for index, i in enumerate(piece_array):
         # if the piece is selected, we'll draw it at the mouse position
-        if selected_piece and index == selected_piece:
+        if selected_piece is not None and index == selected_piece:
             text = pygame.font.SysFont(None, 50).render(i.shorthand(), True, BLACK) if i.color == 'b' \
                 else pygame.font.SysFont(None, 50).render(i.shorthand(), True, GRAY)
             text_rect = text.get_rect(center=(se_pos[0], se_pos[1]))
@@ -229,6 +229,24 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
     # Save the screen to a file
     if save_path:
         pygame.image.save(screen, save_path)
+
+
+# function to display "Game over {color} wins" on screen
+def game_over_screen(color):
+    # Fill background
+    screen.fill(BEIGE)
+    # Default font for our text rendering
+    font = pygame.font.SysFont(None, 100)
+    # Color rename
+    cool_color = 'White' if color == 'w' else 'Black'
+    # write text on the screen
+    text = font.render(f"Game Over: {cool_color} wins", True, BLACK)
+    text_rect = text.get_rect(center=(screen_width // 2, screen_height // 2))
+    screen.blit(text, text_rect)
+    # Update the display
+    pygame.display.flip()
+
+
 
 
 # initial game-loop variables
@@ -428,7 +446,7 @@ def handle_input(input_event):
             se_pos = None
 
     if input_event.type == MOUSEMOTION:
-        if selected_piece:
+        if selected_piece is not None:
             se_pos = pygame.mouse.get_pos()
 
 
@@ -436,6 +454,7 @@ def handle_input(input_event):
 while True:
     for event in pygame.event.get():
         if is_in_checkmate(piece_array, active_color):
+            game_over_screen(active_color)
             time.sleep(5)
             pygame.quit()
             sys.exit()
