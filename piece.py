@@ -1,6 +1,7 @@
 import pandas as pd
 import math
 import re
+import copy
 
 
 # create a function break a gap into two equal-ish parts
@@ -11,32 +12,7 @@ def adjusted_half_gap(dimension_one, dimension_two):
         return math.ceil((dimension_one - dimension_two) / 2), math.floor((dimension_one - dimension_two) / 2)
 
 
-
 # let's create functions to map from a coordinate (a7) to a board vector position
-def coord_to_pos(coord):
-    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
-    letter = re.search(r"[a-z]", coord).group(0)
-    number = int(re.search(r"[0-9]", coord).group(0))
-    row = letters.index(letter) + 1
-    col = 10 - number
-    pos = (row - 1) * 9 + col
-    return pos
-
-
-# and a function that maps backward if ever needed
-def pos_to_coord(pos):
-    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
-    row = math.ceil(pos / 9)
-    row = letters[row - 1]
-    col = 10 - (pos % 9)
-    return f"{row}{col}"
-
-
-def clean_coord(position):
-    if type(position) is str:
-        return coord_to_pos(coord=position)
-    else:
-        return position
 
 
 def is_pos(num):
@@ -48,20 +24,12 @@ def is_pos(num):
         return []
 
 
-# take position, return the 0-index row column
-def pos_to_xy(pos):
-    pos = clean_coord(pos)
-    row = math.floor((pos - 1) / 9)
-    col = (pos - 1) % 9
-    return [row, col]
-
-
 # class for Pieces
 class Piece:
     def __init__(self, color, role, pos, is_upgraded=False, is_alive=True):
         self.color = color
         self.role = role
-        self.pos = pos_to_xy(pos)
+        self.pos = pos
         # self.image = image
         self.is_upgraded = is_upgraded
         self.is_alive = is_alive
@@ -87,7 +55,7 @@ class Piece:
                 role = "gold"
             case 'k':
                 role = "king"
-        alive_status = f"at {pos_to_coord(self.pos)}" if self.is_alive else "dead"
+        alive_status = f"at {self.pos}" if self.is_alive else "dead"
         return f"{color_long} {upgraded_status}{self.role} {alive_status}"
 
     def legal_moves(self):
@@ -178,30 +146,30 @@ class Piece:
 
 def create_piece_array():
     piece_types = [
-        ('b', 'p', ['g9', 'g8', 'g7', 'g6', 'g5', 'g4', 'g3', 'g2', 'g1']),
-        ('w', 'p', ['c9', 'c8', 'c7', 'c6', 'c5', 'c4', 'c3', 'c2', 'c1']),
-        ('b', 'r', ['h2']),
-        ('w', 'r', ['b8']),
-        ('b', 'b', ['h8']),
-        ('w', 'b', ['b2']),
-        ('b', 'l', ['i1', 'i9']),
-        ('w', 'l', ['a9', 'a1']),
-        ('b', 'n', ['i8', 'i2']),
-        ('w', 'n', ['a2', 'a8']),
-        ('b', 's', ['i7', 'i3']),
-        ('w', 's', ['a3', 'a7']),
-        ('b', 'g', ['i6', 'i4']),
-        ('w', 'g', ['a6', 'a4']),
-        ('b', 'k', ['i5']),
-        ('w', 'k', ['a5'])
+        ('b', 'p', [[6, 0], [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], [6, 6], [6, 7], [6, 8]]),
+        ('w', 'p', [[2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [2, 5], [2, 6], [2, 7], [2, 8]]),
+        ('b', 'r', [[7, 7]]),
+        ('w', 'r', [[1, 1]]),
+        ('b', 'b', [[7, 1]]),
+        ('w', 'b', [[1, 7]]),
+        ('b', 'l', [[8, 0], [8, 8]]),
+        ('w', 'l', [[0, 0], [0, 8]]),
+        ('b', 'n', [[8, 1], [8, 7]]),
+        ('w', 'n', [[0, 1], [0, 7]]),
+        ('b', 's', [[8, 2], [8, 6]]),
+        ('w', 's', [[0, 2], [0, 6]]),
+        ('b', 'g', [[8, 3], [8, 5]]),
+        ('w', 'g', [[0, 3], [0, 5]]),
+        ('b', 'k', [[8, 4]]),
+        ('w', 'k', [[0, 4]])
     ]
-    piece_array = [Piece(color, role, pos) for color, role, positions in piece_types for pos in positions]
+    piece_array = [Piece(color, role, pos, False, True) for color, role, positions in piece_types for pos in positions]
     return piece_array
 
 
 # function to check a pos (bool)
-def check_pos(piece_array, coord=None, pos=None):
-    location = coord if coord else pos_to_xy(clean_coord(pos))
+def check_pos(piece_array, coord=None):
+    location = coord
     for i in piece_array:
         if i.pos == location and i.is_alive:
             return True
@@ -209,62 +177,84 @@ def check_pos(piece_array, coord=None, pos=None):
 
 
 # function to find what piece is at position (pos)
-def get_occupier(piece_array, coord=None, pos=None):
-    location = coord if coord else pos_to_xy(clean_coord(pos))
-    for i in piece_array:
-        if i.pos == location and i.is_alive:
-            return piece_array.index(i)
+def get_occupier(piece_array, coord=None):
+    location = coord
+    for i, piece in enumerate(piece_array):
+        if piece.pos == location:
+            return i
+
+
+def filter_moves(piece_array, index):
+    piece = piece_array[index]
+    moves_out = piece.legal_moves().copy()
+    to_remove = []
+    for j in moves_out:
+        # check if this is a passing move which requires a pass-through check
+        if piece.role in ['r', 'b'] or (piece.role == 'l' and not piece.is_upgraded):
+            # find out the direction of the move in questions
+            x_dir = j[0] - piece.pos[0]
+            y_dir = j[1] - piece.pos[1]
+
+            # if the move is vertical or horizontal, we can check for pieces in the way
+            if x_dir == 0:  # horizontal move
+                direction = 1 if is_pos(y_dir) else -1
+                for i in range(1, abs(y_dir)):
+                    if check_pos(piece_array, coord=[piece.pos[0], piece.pos[1] + i * direction]):
+                        to_remove.append(j)
+                        break
+            elif y_dir == 0:  # vertical move
+                direction = 1 if is_pos(x_dir) else -1
+                for i in range(1, abs(x_dir)):
+                    if check_pos(piece_array, coord=[piece.pos[0] + i * direction, piece.pos[1]]):
+                        to_remove.append(j)
+                        break
+            else:  # diagonal move
+                direction_x = 1 if is_pos(x_dir) else -1
+                direction_y = 1 if is_pos(y_dir) else -1
+                for i in range(1, abs(x_dir)):
+                    if check_pos(piece_array, coord=[piece.pos[0] + i * direction_x, piece.pos[1] + i * direction_y]):
+                        to_remove.append(j)
+                        break
+        # now we check if the position is occupied by a friendly piece
+        if check_pos(piece_array, coord=j):
+            occupier = piece_array[get_occupier(piece_array, coord=j)]
+            if occupier.color == piece.color:
+                to_remove.append(j)
+    for q in to_remove:
+        if q in moves_out:
+            moves_out.remove(q)
+    return moves_out
 
 
 # function to perform a move
-def move_piece(piece_array, index, coord=None, pos=None):
-    location = coord if coord else pos_to_xy(clean_coord(pos))
-    piece = piece_array[index]
+def move_piece(piece_array, index, coord=None, drop=False):
+    location = coord
+    piece_array_test = copy.deepcopy(piece_array)
+    piece = piece_array_test[index]
 
     if not location:
         raise ValueError("illegal move: no target location specified")
 
-    # safety check for dead piece
-    if not piece.is_alive:
-        raise ValueError("illegal move: dead piece")
+    if not drop:
+        # safety check for dead piece
+        if not piece.is_alive:
+            raise ValueError("illegal move: dead piece")
 
-    # check if move is legal right off the bat
-    if location not in piece.legal_moves():
-        raise ValueError("illegal move: not allowed")
+        # check if move is legal right off the bat
+        if location not in piece.legal_moves():
+            raise ValueError("illegal move: not allowed")
 
-    # check if this is a passing move which requires a pass-through check (Only happens for lances, rooks and bishops)
-    if piece.role in ['r', 'b'] or (piece.role == 'l' and not piece.is_upgraded):
-        # find out the direction of the move
-        x_dir = location[0] - piece.pos[0]
-        y_dir = location[1] - piece.pos[1]
-        if x_dir == 0:  # vertical move
-            direction = 1 if is_pos(y_dir) else -1
-            for i in range(1, abs(y_dir)):
-                if check_pos(piece_array, coord=[piece.pos[0], piece.pos[1] + i * direction]):
-                    raise ValueError("illegal move: passing through a piece")
-        elif y_dir == 0:  # horizontal move
-            direction = 1 if is_pos(x_dir) else -1
-            for i in range(1, abs(x_dir)):
-                if check_pos(piece_array, coord=[piece.pos[0] + i * direction, piece.pos[1]]):
-                    raise ValueError("illegal move: passing through a piece")
-        else:  # diagonal move
-            direction_x = 1 if is_pos(x_dir) else -1
-            direction_y = 1 if is_pos(y_dir) else -1
-            for i in range(1, abs(x_dir)):
-                if check_pos(piece_array, coord=[piece.pos[0] + i * direction_x, piece.pos[1] + i * direction_y]):
-                    raise ValueError("illegal move: passing through a piece")
+        if location not in filter_moves(piece_array_test, index):
+            raise ValueError("illegal move: pieces in the way")
 
     # now we check if the position is occupied
-    if check_pos(piece_array, coord=location):
-        occupier = piece_array[get_occupier(piece_array, coord=location)]
-        if occupier.color == piece.color:
-            raise ValueError("illegal move: friendly fire")
-        else:
-            occupier.kill()
-            piece.place(pos=location)
+    if check_pos(piece_array_test, coord=location):
+        occupier = piece_array_test[get_occupier(piece_array_test, coord=location)]
+        occupier.kill()
+        piece.place(pos=location)
     else:
         piece.place(pos=location)
-    return piece_array
+    return copy.deepcopy(piece_array_test)
 
 
 # function to grab the index of the first dead piece of a certain color and role
@@ -273,3 +263,114 @@ def get_dead_piece(piece_array, color, role):
         if not i.is_alive and i.color == color and i.role == role:
             return piece_array.index(i)
     return None
+
+
+# function which compiles every possible move for a player
+def all_possible_moves(piece_array, color):
+    moves = []
+    for i in piece_array:
+        if i.color == color and i.is_alive:
+            moves.extend([(piece_array.index(i), x) for x in i.legal_moves()])
+    return moves
+
+
+# function to check if a player is in check
+def is_in_check(piece_array, color):
+    king_index = 38 if color == 'b' else 39
+    king_pos = piece_array[king_index].pos
+
+    enemy_color = 'w' if color == 'b' else 'b'
+    for i in piece_array:
+        if i.color == enemy_color and i.is_alive:
+            if king_pos in filter_moves(piece_array, piece_array.index(i)):
+                return True
+    return False
+
+
+# function to check if a player is in checkmate
+def is_in_checkmate(piece_array, color):
+    if is_in_check(piece_array, color):
+        king_index = 38 if color == 'b' else 39
+        for i in filter_moves(piece_array, king_index):
+            new_array = move_piece(piece_array, king_index, coord=i)
+            if not is_in_check(new_array, color):
+                return False
+        for j in piece_array:
+            if j.color == color and j.is_alive:
+                for i in filter_moves(piece_array, piece_array.index(j)):
+                    new_array = move_piece(piece_array, piece_array.index(j), coord=i)
+                    if not is_in_check(new_array, color):
+                        return False
+        return True
+    else:
+        return False
+
+
+# make sure that the move doesn't put the player in check
+def is_safe_king_move(piece_array, index, coord=None):
+    color = piece_array[index].color
+    new_piece_array = move_piece(piece_array, index, coord=coord)
+    return not is_in_check(new_piece_array, color)
+
+
+def legal_drops(piece_array, index):
+    piece_array_test = piece_array.copy()
+    piece = piece_array_test[index]
+
+    # for every possible coordinate...
+    possible_coord = [[i, j] for i in range(9) for j in range(9)]
+    to_remove = []
+
+    # remove occupied coordinates
+    for i in piece_array_test:
+        if i.is_alive and i != piece:
+            to_remove.append(i.pos)
+
+    # check for pieces having no further moves
+    for i in possible_coord:
+        # test the move
+        test_array = move_piece(piece_array_test, index, coord=i, drop=True)
+
+        # get the future moves which would be possible for the piece in this new location
+        future_moves = filter_moves(test_array, index)
+
+        # if there are no future moves, remove the coordinate from the list
+        if not future_moves:
+            to_remove.append(i)
+
+    # if we're a pawn, remove columns which already contain a pawn of the same color
+    if piece.role == 'p':
+        # check for columns with pawns already in them
+        pawn_columns = []
+        for j in piece_array_test:
+            if j.role == 'p' and j.color == piece.color and j.is_alive:
+                # remove all possible coordinates in the same column as this pawn
+                pawn_columns.append(j.pos[1])
+
+        # loop through those columns and remove them from the possible coordinates
+        for i in possible_coord:
+            if i[1] in pawn_columns:
+                to_remove.append(i)
+
+        # also, we need to make sure that the pawn does not cause checkmate when placed
+        for i in possible_coord:
+            enemy_color = 'w' if piece.color == 'b' else 'b'
+            test_array = move_piece(piece_array_test, index, coord=i, drop=True)
+            if is_in_checkmate(test_array, enemy_color):
+                to_remove.append(i)
+
+    to_remove = list(set(tuple(coord) for coord in to_remove))
+    possible_coord = [coord for coord in possible_coord if tuple(coord) not in to_remove]
+
+    return possible_coord
+
+
+# create a function which supplies all possible piece - move combinations that bring the player out of check
+def check_safe_moves(piece_array, color):
+    safe_moves = []
+    for i in piece_array:
+        if i.color == color and i.is_alive:
+            for j in filter_moves(piece_array, piece_array.index(i)):
+                if is_safe_king_move(piece_array, piece_array.index(i), coord=j):
+                    safe_moves.append((piece_array.index(i), j))
+    return safe_moves
