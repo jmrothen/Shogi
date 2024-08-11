@@ -307,9 +307,9 @@ def is_in_checkmate(piece_array, color):
 
 
 # make sure that the move doesn't put the player in check
-def is_safe_king_move(piece_array, index, coord=None):
+def is_safe_king_move(piece_array, index, coord=None, drop=False):
     color = piece_array[index].color
-    new_piece_array = move_piece(piece_array, index, coord=coord)
+    new_piece_array = move_piece(piece_array, index, coord=coord, drop=drop)
     return not is_in_check(new_piece_array, color)
 
 
@@ -366,11 +366,18 @@ def legal_drops(piece_array, index):
 
 
 # create a function which supplies all possible piece - move combinations that bring the player out of check
-def check_safe_moves(piece_array, color):
+def check_safe_moves(piece_array, color, drop=False):
     safe_moves = []
-    for i in piece_array:
-        if i.color == color and i.is_alive:
-            for j in filter_moves(piece_array, piece_array.index(i)):
-                if is_safe_king_move(piece_array, piece_array.index(i), coord=j):
-                    safe_moves.append((piece_array.index(i), j))
+    if drop:
+        for i in piece_array:
+            if i.color == color and not i.is_alive:
+                for j in legal_drops(piece_array, piece_array.index(i)):
+                    if is_safe_king_move(piece_array, piece_array.index(i), coord=j, drop=True):
+                        safe_moves.append((piece_array.index(i), j))
+    else:
+        for i in piece_array:
+            if i.color == color and i.is_alive:
+                for j in filter_moves(piece_array, piece_array.index(i)):
+                    if is_safe_king_move(piece_array, piece_array.index(i), coord=j):
+                        safe_moves.append((piece_array.index(i), j))
     return safe_moves
