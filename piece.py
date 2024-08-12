@@ -332,7 +332,8 @@ def legal_drops(piece_array, index):
         test_array = move_piece(piece_array_test, index, coord=i, drop=True)
 
         # get the future moves which would be possible for the piece in this new location
-        future_moves = filter_moves(test_array, index)
+        # NOTE, this only cares above legal moves, not the filtered ones
+        future_moves = test_array[index].legal_moves()
 
         # if there are no future moves, remove the coordinate from the list
         if not future_moves:
