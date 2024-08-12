@@ -1,9 +1,10 @@
+import sys
 import time
 
-from board import *
-import sys
 import pygame
 from pygame.locals import *
+
+from board import *
 
 # Initialize the game
 pygame.init()
@@ -54,8 +55,6 @@ GRAY = (128, 128, 128)
 
 
 # Function to draw the Shogi board
-
-
 def draw_shogi_board_pygame(pa=None, save_path=None):
     # reference global variables
     global selected_piece
@@ -72,6 +71,7 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
     # Highlight possible moves for the selected piece
     if selected_piece is not None:
 
+        # adjust the highlighted cells if the player is in check
         if check_flag:
 
             # we will change the color of each cell which the selected piece can move to
@@ -79,12 +79,12 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
 
                 # get the safe moves for the selected piece
                 safe_moves = check_safe_moves(piece_array, active_color)
-
                 safe_moves2 = []
                 for s in safe_moves:
                     if s[0] == selected_piece:
                         safe_moves2.append(s[1])
 
+                # for each possible move that fits the safe-moves list, we'll highlight the cell
                 for i in filter_moves(piece_array, selected_piece):
                     if i in safe_moves2:
                         row, col = i
@@ -92,16 +92,18 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
                                          (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1,
                                           cell_size - 1,
                                           cell_size - 1), 0)
+
+            # if the piece is not alive, we'll highlight the drop locations
             else:
 
                 # get the safe moves for the selected piece
                 safe_moves = check_safe_moves(piece_array, active_color, drop=True)
-
                 safe_moves2 = []
                 for s in safe_moves:
                     if s[0] == selected_piece:
                         safe_moves2.append(s[1])
 
+                # for each possible move that fits the safe-moves list, we'll highlight the cell
                 for i in legal_drops(piece_array, selected_piece):
                     if i in safe_moves2:
                         row, col = i
@@ -109,24 +111,31 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
                                          (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1,
                                           cell_size - 1,
                                           cell_size - 1), 0)
+
+        # if the player is not in check, we can just highlight the legal moves
         else:
             # we will change the color of each cell which the selected piece can move to
             if piece_array[selected_piece].is_alive:
                 for i in filter_moves(piece_array, selected_piece):
                     row, col = i
                     pygame.draw.rect(screen, (255, 204, 204),
-                                     (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1, cell_size - 1,
+                                     (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1,
+                                      cell_size - 1,
                                       cell_size - 1), 0)
+
+            # if the piece is not alive, we'll highlight the drop locations
             else:
                 for i in legal_drops(piece_array, selected_piece):
                     row, col = i
                     pygame.draw.rect(screen, (255, 204, 204),
-                                     (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1, cell_size - 1,
+                                     (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1,
+                                      cell_size - 1,
                                       cell_size - 1), 0)
 
-    # Draw the game board
+    # Draw the game board grid
     pygame.draw.rect(screen, BLACK, (width_gap, height_gap_top, board_height, board_width), 3)
     for i in range(1, 9):
+        # draw the horizontal and vertical lines
         pygame.draw.line(screen, BLACK, (width_gap, height_gap_top + i * cell_size),
                          (width_gap + board_height, height_gap_top + i * cell_size), 1)
         pygame.draw.line(screen, BLACK, (width_gap + i * cell_size, height_gap_top),
@@ -174,11 +183,10 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
             center=(width_gap - cell_size // 9, height_gap_top + (i - 1) * cell_size + cell_size // 2))
         screen.blit(text, text_rect)
 
-    # Draw the pieces
     # We'll track dead pieces separately to draw them in pockets later
     dead_pieces = {'w': [], 'b': []}
 
-    # cycle through pieces
+    # cycle through pieces to draw them on the board
     for index, i in enumerate(piece_array):
         # if the piece is selected, we'll draw it at the mouse position
         if selected_piece is not None and index == selected_piece:
@@ -186,6 +194,7 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
                 else pygame.font.SysFont(None, 50).render(i.shorthand(), True, GRAY)
             text_rect = text.get_rect(center=(se_pos[0], se_pos[1]))
             screen.blit(text, text_rect)
+
         # for all other pieces, we'll draw them at their current position
         elif i.is_alive:
             row, col = i.pos
@@ -194,6 +203,7 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
             text_rect = text.get_rect(center=(width_gap + col * cell_size + cell_size // 2,
                                               height_gap_top + row * cell_size + cell_size // 2))
             screen.blit(text, text_rect)
+
         # dead pieces are stored for next step
         elif not i.is_alive:
             dead_pieces[i.color].append(i.shorthand())
@@ -251,6 +261,7 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
     text = pygame.font.SysFont(None, 40).render(f"{player_color}'s turn", True, BLACK)
     text_rect = text.get_rect(center=(pocket_gap + pocket_width // 2, height_gap_top + board_height // 2))
     screen.blit(text, text_rect)
+
     # draw a light red arrow pointing to the current player
     if player_color == 'White':
         pygame.draw.polygon(screen, (255, 100, 100),
@@ -275,14 +286,18 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
 def game_over_screen(color):
     # Fill background
     screen.fill(BEIGE)
+
     # Default font for our text rendering
     font = pygame.font.SysFont(None, 100)
+
     # Color rename
     cool_color = 'White' if color == 'w' else 'Black'
+
     # write text on the screen
     text = font.render(f"Game Over: {cool_color} wins", True, BLACK)
     text_rect = text.get_rect(center=(screen_width // 2, screen_height // 2))
     screen.blit(text, text_rect)
+
     # Update the display
     pygame.display.flip()
 
@@ -296,7 +311,9 @@ active_color = 'b'  # black goes first
 check_flag = False
 
 
+# Define function to handle input events
 def handle_input(input_event):
+    # reference global variables
     global selected_piece
     global se_pos
     global error_text
@@ -304,14 +321,18 @@ def handle_input(input_event):
     global active_color
     global check_flag
 
+    # basic quit event
     if input_event.type == QUIT:
         pygame.quit()
         sys.exit()
 
-    elif input_event.type == MOUSEBUTTONDOWN:
+    # handle mouse clicks
+    elif input_event.type == MOUSEBUTTONDOWN and input_event.button == 1:
+        # basic coordinates
         x, y = pygame.mouse.get_pos()
         x2 = x - width_gap
         y2 = y - height_gap_top
+
         # if the click is on the board...
         if 0 <= x2 < board_width and 0 <= y2 < board_height:
             col = x2 // cell_size
@@ -399,6 +420,7 @@ def handle_input(input_event):
                             active_color = 'w' if active_color == 'b' else 'b'
                             error_text = None
 
+                    # handle exceptions
                     except ValueError as e:
                         error_text = e
                         selected_piece = None
@@ -438,6 +460,7 @@ def handle_input(input_event):
                                 if selected_piece is None:
                                     error_text = "illegal move: piece cannot stop check"
 
+                            # if the player is not in check, we can just select the piece
                             else:
                                 selected_piece = occ_index
                                 se_pos = pygame.mouse.get_pos()
@@ -449,6 +472,7 @@ def handle_input(input_event):
 
                     # If no piece there, just continue
 
+                # handle exceptions
                 except ValueError as e:
                     error_text = e
 
@@ -468,6 +492,7 @@ def handle_input(input_event):
                 x -= pocket_gap
                 y -= height_gap_top if pocket == 'w' else height_gap_top + board_height - pocket_height
 
+                # Determine pocket position
                 if 0 <= x < pocket_width and 0 <= y < pocket_height:
                     col, row = x // (pocket_width // 3), y // (pocket_height // 3)
                     pocket_position = (row, col)
@@ -479,13 +504,18 @@ def handle_input(input_event):
                         (1, 0): 's', (1, 2): 'g',
                         (2, 0): 'b', (2, 2): 'r'
                     }
+
+                    # get the piece of corresponding type from the dead pieces
                     piece = piece_map.get(pocket_position)
                     selected_piece = get_dead_piece(piece_array, pocket, piece)
                     se_pos = pygame.mouse.get_pos()
+
+        # if the click was not on the board or pocket, we'll deselect the piece
         else:
             selected_piece = None
             se_pos = None
 
+    # track mouse position, so we can have the selected piece follow it
     if input_event.type == MOUSEMOTION:
         if selected_piece is not None:
             se_pos = pygame.mouse.get_pos()
@@ -494,15 +524,18 @@ def handle_input(input_event):
 # Run the game loop
 while True:
     for event in pygame.event.get():
+        # Checkmate check
         if is_in_checkmate(piece_array, active_color):
             game_over_screen(active_color)
             time.sleep(5)
             pygame.quit()
             sys.exit()
-        elif is_in_check(piece_array, active_color):
-            check_flag = True
-        else:
-            check_flag = False
+
+        # "Check" check
+        check_flag = True if is_in_check(piece_array, active_color) else False
+
+        # input event handling
         handle_input(event)
 
+        # draw the board
         draw_shogi_board_pygame()
