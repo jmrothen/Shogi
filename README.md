@@ -40,9 +40,9 @@ Has the pygame version of Shogi
   - ~~Checkmate~~
     - ~~Cute little pop-up that says "Checkmate!" when a player is in checkmate~~
   - ~~Game over pop-up~~
-    - Game over menu
-    - Option to return to main menu
-    - Option to restart game
+    - ~~Game over menu~~
+    - ~~Option to return to main menu~~
+    - ~~Option to restart game~~
   - Stalemate
   - Repetition
 - ~~add error warnings for illegal moves in text at the left of the board~~
