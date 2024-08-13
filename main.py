@@ -298,6 +298,20 @@ def game_over_screen(color):
     text_rect = text.get_rect(center=(screen_width // 2, screen_height // 2))
     screen.blit(text, text_rect)
 
+    # draw the menu buttons on screen
+    pygame.draw.rect(screen, IVORY, (screen_width // 5, screen_height // 2 + 200, screen_width//5, 100), 0)
+    pygame.draw.rect(screen, IVORY, (3 * screen_width // 5, screen_height // 2 + 200, screen_width//5, 100), 0)
+    pygame.draw.rect(screen, BLACK, (screen_width // 5, screen_height // 2 + 200, screen_width//5, 100), 2)
+    pygame.draw.rect(screen, BLACK, (3 * screen_width // 5, screen_height // 2+200, screen_width//5, 100), 2)
+
+    # write text on the buttons
+    text2 = pygame.font.SysFont(name=None, size=60).render("Quit", True, BLACK)
+    text_rect = text2.get_rect(center=pygame.Rect(3 * screen_width // 5, screen_height // 2 + 200, screen_width//5, 100).center)
+    screen.blit(text2, text_rect)
+    text3 = pygame.font.SysFont(name=None, size=60).render("Restart", True, BLACK)
+    text_rect = text3.get_rect(center=pygame.Rect(screen_width // 5, screen_height // 2 + 200, screen_width//5, 100).center)
+    screen.blit(text3, text_rect)
+
     # Update the display
     pygame.display.flip()
 
@@ -309,6 +323,7 @@ error_text = None  # possible error text that I might draw on screen if needed
 se_pos = [None, None]  # tracked for selected piece to follow mouse
 active_color = 'b'  # black goes first
 check_flag = False
+game_over_flag = False
 
 
 # Define function to handle input events
@@ -320,11 +335,27 @@ def handle_input(input_event):
     global piece_array
     global active_color
     global check_flag
+    global game_over_flag
 
     # basic quit event
     if input_event.type == QUIT:
         pygame.quit()
         sys.exit()
+
+    if game_over_flag:
+        x, y = pygame.mouse.get_pos()
+        if input_event.type == MOUSEBUTTONDOWN and input_event.button == 1:
+            if screen_width // 5 <= x <= 2 * screen_width // 5 and screen_height // 2 + 200 <= y <= screen_height // 2 + 300:
+                piece_array = create_piece_array()
+                selected_piece = None
+                se_pos = None
+                error_text = None
+                active_color = 'b'
+                check_flag = False
+                game_over_flag = False
+            elif 3 * screen_width // 5 <= x <= 4 * screen_width // 5 and screen_height // 2 + 200 <= y <= screen_height // 2 + 300:
+                pygame.quit()
+                sys.exit()
 
     # handle mouse clicks
     elif input_event.type == MOUSEBUTTONDOWN and input_event.button == 1:
@@ -496,7 +527,6 @@ def handle_input(input_event):
                 if 0 <= x < pocket_width and 0 <= y < pocket_height:
                     col, row = x // (pocket_width // 3), y // (pocket_height // 3)
                     pocket_position = (row, col)
-                    print(pocket_position)
 
                     # Map pocket position to piece type
                     piece_map = {
@@ -525,17 +555,20 @@ def handle_input(input_event):
 while True:
     for event in pygame.event.get():
         # Checkmate check
+
         if is_in_checkmate(piece_array, active_color):
-            game_over_screen(active_color)
-            time.sleep(5)
-            pygame.quit()
-            sys.exit()
+            game_over_flag = True
+            inactive_color = 'w' if active_color == 'b' else 'b'
+            handle_input(event)
+            game_over_screen(inactive_color)
 
-        # "Check" check
-        check_flag = True if is_in_check(piece_array, active_color) else False
+        else:
+            # "Check" check
+            check_flag = True if is_in_check(piece_array, active_color) else False
 
-        # input event handling
-        handle_input(event)
+            # input event handling
+            handle_input(event)
 
-        # draw the board
-        draw_shogi_board_pygame()
+            # draw the board
+            draw_shogi_board_pygame()
+            # game_over_screen('b')
