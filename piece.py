@@ -34,10 +34,9 @@ class Piece:
         self.is_upgraded = is_upgraded
         self.is_alive = is_alive
 
-    # add a simple function that prints the piece's traits
-    def __str__(self):
-        color_long = "Black" if self.color == 'b' else "White"
-        upgraded_status = " promoted " if self.is_upgraded else ""
+    # option to print the long for of the piece name
+    def long_name(self):
+        role = ""
         match self.role:
             case 'p':
                 role = "pawn"
@@ -55,6 +54,13 @@ class Piece:
                 role = "gold"
             case 'k':
                 role = "king"
+        return role
+
+    # add a simple function that prints the piece's traits
+    def __str__(self):
+        color_long = "Black" if self.color == 'b' else "White"
+        upgraded_status = " promoted " if self.is_upgraded else ""
+        role = self.long_name()
         alive_status = f"at {self.pos}" if self.is_alive else "dead"
         return f"{color_long} {upgraded_status}{self.role} {alive_status}"
 
@@ -385,7 +391,7 @@ def check_safe_moves(piece_array, color, drop=False):
     return safe_moves
 
 
-def check_promoting_move(piece_array, index, color = None, coord=None):
+def check_promoting_move(piece_array, index, color=None, coord=None):
     # grab active piece
     piece_array_test = copy.deepcopy(piece_array)
     piece = piece_array_test[index]
@@ -397,7 +403,7 @@ def check_promoting_move(piece_array, index, color = None, coord=None):
     new_pos = coord
 
     if not piece.can_promote():
-        raise False # piece cannot promote
+        return False  # piece cannot promote
 
     if color == 'b':
         if old_pos[0] <= 2 or new_pos[0] <= 2:
