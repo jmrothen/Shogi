@@ -29,8 +29,8 @@ Has the pygame version of Shogi
 - rotate white pieces?
   - As opposed to just coloring them differently 
 - rotate board?
-- add a way to promote pieces
-  - will require a prompt of some sort when a promotable piece enters the last 3 rows
+- ~~add a way to promote pieces~~
+  - ~~will require a prompt of some sort when a promotable piece enters the last 3 rows~~
 - Game status checks
   - ~~Check~~
     - Cute little pop-up that says "Check!" when a player is in check
@@ -57,3 +57,6 @@ Has the pygame version of Shogi
 - Maybe add a main menu
 - Maybe store the moves into a log output file
   - SFEN format?
+- Really basic AI
+  - Maybe just random moves
+  - Maybe just a few moves ahead
