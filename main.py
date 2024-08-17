@@ -299,17 +299,19 @@ def game_over_screen(color):
     screen.blit(text, text_rect)
 
     # draw the menu buttons on screen
-    pygame.draw.rect(screen, IVORY, (screen_width // 5, screen_height // 2 + 200, screen_width//5, 100), 0)
-    pygame.draw.rect(screen, IVORY, (3 * screen_width // 5, screen_height // 2 + 200, screen_width//5, 100), 0)
-    pygame.draw.rect(screen, BLACK, (screen_width // 5, screen_height // 2 + 200, screen_width//5, 100), 2)
-    pygame.draw.rect(screen, BLACK, (3 * screen_width // 5, screen_height // 2+200, screen_width//5, 100), 2)
+    pygame.draw.rect(screen, IVORY, (screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100), 0)
+    pygame.draw.rect(screen, IVORY, (3 * screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100), 0)
+    pygame.draw.rect(screen, BLACK, (screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100), 2)
+    pygame.draw.rect(screen, BLACK, (3 * screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100), 2)
 
     # write text on the buttons
     text2 = pygame.font.SysFont(name=None, size=60).render("Quit", True, BLACK)
-    text_rect = text2.get_rect(center=pygame.Rect(3 * screen_width // 5, screen_height // 2 + 200, screen_width//5, 100).center)
+    text_rect = text2.get_rect(
+        center=pygame.Rect(3 * screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100).center)
     screen.blit(text2, text_rect)
     text3 = pygame.font.SysFont(name=None, size=60).render("Restart", True, BLACK)
-    text_rect = text3.get_rect(center=pygame.Rect(screen_width // 5, screen_height // 2 + 200, screen_width//5, 100).center)
+    text_rect = text3.get_rect(
+        center=pygame.Rect(screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100).center)
     screen.blit(text3, text_rect)
 
     # Update the display
@@ -317,7 +319,6 @@ def game_over_screen(color):
 
 
 def promote_screen(color=None):
-
     if not color:
         color = active_color
     global selected_piece
@@ -336,17 +337,19 @@ def promote_screen(color=None):
     screen.blit(text, text_rect)
 
     # draw the menu buttons on screen
-    pygame.draw.rect(screen, IVORY, (screen_width // 5, screen_height // 2 + 200, screen_width//5, 100), 0)
-    pygame.draw.rect(screen, IVORY, (3 * screen_width // 5, screen_height // 2 + 200, screen_width//5, 100), 0)
-    pygame.draw.rect(screen, BLACK, (screen_width // 5, screen_height // 2 + 200, screen_width//5, 100), 2)
-    pygame.draw.rect(screen, BLACK, (3 * screen_width // 5, screen_height // 2+200, screen_width//5, 100), 2)
+    pygame.draw.rect(screen, IVORY, (screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100), 0)
+    pygame.draw.rect(screen, IVORY, (3 * screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100), 0)
+    pygame.draw.rect(screen, BLACK, (screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100), 2)
+    pygame.draw.rect(screen, BLACK, (3 * screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100), 2)
 
     # write text on the buttons
     text2 = pygame.font.SysFont(name=None, size=60).render("No", True, BLACK)
-    text_rect = text2.get_rect(center=pygame.Rect(3 * screen_width // 5, screen_height // 2 + 200, screen_width//5, 100).center)
+    text_rect = text2.get_rect(
+        center=pygame.Rect(3 * screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100).center)
     screen.blit(text2, text_rect)
     text3 = pygame.font.SysFont(name=None, size=60).render("Yes", True, BLACK)
-    text_rect = text3.get_rect(center=pygame.Rect(screen_width // 5, screen_height // 2 + 200, screen_width//5, 100).center)
+    text_rect = text3.get_rect(
+        center=pygame.Rect(screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100).center)
     screen.blit(text3, text_rect)
 
     # Update the display
@@ -381,6 +384,7 @@ def handle_input(input_event):
         pygame.quit()
         sys.exit()
 
+    # handle mouse clicks on game-over screen
     if game_over_flag:
         x, y = pygame.mouse.get_pos()
         if input_event.type == MOUSEBUTTONDOWN and input_event.button == 1:
@@ -396,6 +400,7 @@ def handle_input(input_event):
                 pygame.quit()
                 sys.exit()
 
+    # handle mouse clicks on promote screen
     elif promote_flag:
         x, y = pygame.mouse.get_pos()
         if input_event.type == MOUSEBUTTONDOWN and input_event.button == 1:
@@ -487,7 +492,8 @@ def handle_input(input_event):
                             safe_moves = check_safe_moves(piece_array, active_color)
                             for s in safe_moves:
                                 if s[0] == selected_piece and position == s[1]:
-                                    prom_check = check_promoting_move(piece_array, selected_piece, color=active_color, coord=position)
+                                    prom_check = check_promoting_move(piece_array, selected_piece, color=active_color,
+                                                                      coord=position)
                                     piece_array = move_piece(piece_array, index=selected_piece, coord=position)
                                     # check if the piece can be promoted
                                     if piece_array[selected_piece].can_promote() and prom_check:
@@ -510,7 +516,8 @@ def handle_input(input_event):
 
                         # if not in check, just go ahead and make the move!
                         else:
-                            prom_check = check_promoting_move(piece_array, selected_piece, color=active_color, coord=position)
+                            prom_check = check_promoting_move(piece_array, selected_piece, color=active_color,
+                                                              coord=position)
                             piece_array = move_piece(piece_array, index=selected_piece, coord=position)
                             # check if the piece can be promoted
                             if piece_array[selected_piece].can_promote() and prom_check:
@@ -622,26 +629,23 @@ def handle_input(input_event):
         if selected_piece is not None:
             se_pos = pygame.mouse.get_pos()
 
+    # "Check" check
+    check_flag = True if is_in_check(piece_array, active_color) else False
+
+    # general checkmate check
+    if not game_over_flag:
+        if is_in_checkmate(piece_array, active_color):
+            game_over_flag = True
+
 
 # Run the game loop
 while True:
     for event in pygame.event.get():
-        # Checkmate check
-
-        if is_in_checkmate(piece_array, active_color):
-            game_over_flag = True
+        handle_input(event)
+        if game_over_flag:
             inactive_color = 'w' if active_color == 'b' else 'b'
-            handle_input(event)
-            game_over_screen(inactive_color)
-
+            game_over_screen(color=inactive_color)
+        elif promote_flag:
+            promote_screen()
         else:
-            # "Check" check
-            check_flag = True if is_in_check(piece_array, active_color) else False
-
-            # input event handling
-            handle_input(event)
-
-            if promote_flag:
-                promote_screen()
-            else:
-                draw_shogi_board_pygame()
+            draw_shogi_board_pygame()
