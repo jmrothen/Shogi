@@ -115,10 +115,11 @@ class Piece:
             self.color = 'w'
         # move to dead
         self.is_alive = False
+        self.is_upgraded = False
         self.pos = [9, 9]
 
     def can_promote(self):
-        return False if self.role in ['k', 'g'] else True
+        return False if (self.role in ['k', 'g'] or self.is_upgraded) else True
 
     def promote(self):
         if self.can_promote():
@@ -382,3 +383,29 @@ def check_safe_moves(piece_array, color, drop=False):
                     if is_safe_king_move(piece_array, piece_array.index(i), coord=j):
                         safe_moves.append((piece_array.index(i), j))
     return safe_moves
+
+
+def check_promoting_move(piece_array, index, color = None, coord=None):
+    # grab active piece
+    piece_array_test = copy.deepcopy(piece_array)
+    piece = piece_array_test[index]
+    if not color:
+        color = piece.color
+
+    # check old and new locations to see if piece is a
+    old_pos = piece.pos
+    new_pos = coord
+
+    if not piece.can_promote():
+        raise False # piece cannot promote
+
+    if color == 'b':
+        if old_pos[0] <= 2 or new_pos[0] <= 2:
+            return True
+        else:
+            return False
+    else:
+        if old_pos[0] >= 6 or new_pos[0] >= 6:
+            return True
+        else:
+            return False
