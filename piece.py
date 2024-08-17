@@ -294,6 +294,20 @@ def is_in_check(piece_array, color):
     return False
 
 
+# function to supply the pieces which are attacking the king
+def pieces_checking_king(piece_array, color):
+    king_index = 38 if color == 'b' else 39
+    king_pos = piece_array[king_index].pos
+
+    enemy_color = 'w' if color == 'b' else 'b'
+    attacking_pieces = []
+    for i in piece_array:
+        if i.color == enemy_color and i.is_alive:
+            if king_pos in filter_moves(piece_array, piece_array.index(i)):
+                attacking_pieces.append(piece_array.index(i))
+    return attacking_pieces
+
+
 # function to check if a player is in checkmate
 def is_in_checkmate(piece_array, color):
     if is_in_check(piece_array, color):

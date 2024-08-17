@@ -60,6 +60,8 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
     global selected_piece
     global se_pos
     global error_text
+    global check_flag
+
     if not pa:
         global piece_array
     else:
@@ -131,6 +133,23 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
                                      (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1,
                                       cell_size - 1,
                                       cell_size - 1), 0)
+
+    # identify pieces providing a check
+    if check_flag:
+        for i in pieces_checking_king(piece_array, active_color):
+            row, col = piece_array[i].pos
+            pygame.draw.circle(screen, (255, 120, 120),
+                               (width_gap + col * cell_size + cell_size // 2,
+                                height_gap_top + row * cell_size + cell_size // 2), (cell_size - 10) // 2, 0)
+        # additionally, we'll draw a red square around the king
+        king_index = 38 if active_color == 'b' else 39
+        kingx, kingy = piece_array[king_index].pos
+        # draw a yellow rectangle around the king
+        pygame.draw.rect(screen, (255, 200, 150),
+                         (width_gap + kingy * cell_size + 1, height_gap_top + kingx * cell_size + 1,
+                          cell_size - 1,
+                          cell_size - 1), 0)
+
 
     # Draw the game board grid
     pygame.draw.rect(screen, BLACK, (width_gap, height_gap_top, board_height, board_width), 3)
