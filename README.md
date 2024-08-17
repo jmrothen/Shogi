@@ -29,7 +29,6 @@ Has the pygame version of Shogi
 - rotate board?
 - Game status checks
     - Cute little pop-up that says "Check!" when a player is in check
-    - Highlight pieces causing check
   - Stalemate
   - Repetition
 - Add a way to resign
