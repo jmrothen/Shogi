@@ -316,6 +316,43 @@ def game_over_screen(color):
     pygame.display.flip()
 
 
+def promote_screen(color=None):
+
+    if not color:
+        color = active_color
+    global selected_piece
+    global piece_array
+    piece = piece_array[selected_piece]
+
+    # Default font for our text rendering
+    font = pygame.font.SysFont(None, 100)
+
+    # Color rename
+    cool_color = 'White' if color == 'w' else 'Black'
+
+    # write text on the screen
+    text = font.render(f"Promote {cool_color} {piece}?", True, BLACK)
+    text_rect = text.get_rect(center=(screen_width // 2, screen_height // 2))
+    screen.blit(text, text_rect)
+
+    # draw the menu buttons on screen
+    pygame.draw.rect(screen, IVORY, (screen_width // 5, screen_height // 2 + 200, screen_width//5, 100), 0)
+    pygame.draw.rect(screen, IVORY, (3 * screen_width // 5, screen_height // 2 + 200, screen_width//5, 100), 0)
+    pygame.draw.rect(screen, BLACK, (screen_width // 5, screen_height // 2 + 200, screen_width//5, 100), 2)
+    pygame.draw.rect(screen, BLACK, (3 * screen_width // 5, screen_height // 2+200, screen_width//5, 100), 2)
+
+    # write text on the buttons
+    text2 = pygame.font.SysFont(name=None, size=60).render("No", True, BLACK)
+    text_rect = text2.get_rect(center=pygame.Rect(3 * screen_width // 5, screen_height // 2 + 200, screen_width//5, 100).center)
+    screen.blit(text2, text_rect)
+    text3 = pygame.font.SysFont(name=None, size=60).render("Yes", True, BLACK)
+    text_rect = text3.get_rect(center=pygame.Rect(screen_width // 5, screen_height // 2 + 200, screen_width//5, 100).center)
+    screen.blit(text3, text_rect)
+
+    # Update the display
+    pygame.display.flip()
+
+
 # initial game-loop variables
 selected_piece = None  # index of the clicked piece
 piece_array = create_piece_array()  # array of pieces
@@ -324,6 +361,7 @@ se_pos = [None, None]  # tracked for selected piece to follow mouse
 active_color = 'b'  # black goes first
 check_flag = False
 game_over_flag = False
+promote_flag = False
 
 
 # Define function to handle input events
@@ -336,6 +374,7 @@ def handle_input(input_event):
     global active_color
     global check_flag
     global game_over_flag
+    global promote_flag
 
     # basic quit event
     if input_event.type == QUIT:
@@ -356,6 +395,23 @@ def handle_input(input_event):
             elif 3 * screen_width // 5 <= x <= 4 * screen_width // 5 and screen_height // 2 + 200 <= y <= screen_height // 2 + 300:
                 pygame.quit()
                 sys.exit()
+
+    elif promote_flag:
+        x, y = pygame.mouse.get_pos()
+        if input_event.type == MOUSEBUTTONDOWN and input_event.button == 1:
+            if screen_width // 5 <= x <= 2 * screen_width // 5 and screen_height // 2 + 200 <= y <= screen_height // 2 + 300:
+                piece_array[selected_piece].promote()
+                promote_flag = False
+                selected_piece = None
+                se_pos = None
+                error_text = None
+                active_color = 'w' if active_color == 'b' else 'b'
+            elif 3 * screen_width // 5 <= x <= 4 * screen_width // 5 and screen_height // 2 + 200 <= y <= screen_height // 2 + 300:
+                promote_flag = False
+                selected_piece = None
+                se_pos = None
+                error_text = None
+                active_color = 'w' if active_color == 'b' else 'b'
 
     # handle mouse clicks
     elif input_event.type == MOUSEBUTTONDOWN and input_event.button == 1:
@@ -432,12 +488,20 @@ def handle_input(input_event):
                             for s in safe_moves:
                                 if s[0] == selected_piece and position == s[1]:
                                     piece_array = move_piece(piece_array, index=selected_piece, coord=position)
-                                    selected_piece = None
-                                    se_pos = None
-                                    active_color = 'w' if active_color == 'b' else 'b'
-                                    error_text = None
-                                    check_flag = False  # remove the check!
-                                    break
+                                    # check if the piece can be promoted
+                                    if piece_array[selected_piece].can_promote() and check_promoting_move(piece_array, selected_piece, color=active_color, coord=position):
+                                        promote_screen()
+                                        promote_flag = True
+                                        error_text = None
+                                        check_flag = False  # remove the check!
+                                        break
+                                    else:
+                                        selected_piece = None
+                                        se_pos = None
+                                        active_color = 'w' if active_color == 'b' else 'b'
+                                        error_text = None
+                                        check_flag = False  # remove the check!
+                                        break
 
                             # if the piece+move were not found in the safe_move list, toss error
                             if selected_piece is not None:
@@ -446,10 +510,16 @@ def handle_input(input_event):
                         # if not in check, just go ahead and make the move!
                         else:
                             piece_array = move_piece(piece_array, index=selected_piece, coord=position)
-                            selected_piece = None
-                            se_pos = None
-                            active_color = 'w' if active_color == 'b' else 'b'
-                            error_text = None
+                            # check if the piece can be promoted
+                            if piece_array[selected_piece].can_promote() and check_promoting_move(piece_array, selected_piece, color=active_color, coord=position):
+                                promote_screen()
+                                promote_flag = True
+                                error_text = None
+                            else:
+                                selected_piece = None
+                                se_pos = None
+                                active_color = 'w' if active_color == 'b' else 'b'
+                                error_text = None
 
                     # handle exceptions
                     except ValueError as e:
@@ -569,6 +639,7 @@ while True:
             # input event handling
             handle_input(event)
 
-            # draw the board
-            draw_shogi_board_pygame()
-            # game_over_screen('b')
+            if promote_flag:
+                promote_screen()
+            else:
+                draw_shogi_board_pygame()
