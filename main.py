@@ -331,7 +331,7 @@ def promote_screen(color=None):
     cool_color = 'White' if color == 'w' else 'Black'
 
     # write text on the screen
-    text = font.render(f"Promote {cool_color} {piece}?", True, BLACK)
+    text = font.render(f"Promote {cool_color} {piece.long_name()}?", True, BLACK)
     text_rect = text.get_rect(center=(screen_width // 2, screen_height // 2))
     screen.blit(text, text_rect)
 
@@ -487,9 +487,10 @@ def handle_input(input_event):
                             safe_moves = check_safe_moves(piece_array, active_color)
                             for s in safe_moves:
                                 if s[0] == selected_piece and position == s[1]:
+                                    prom_check = check_promoting_move(piece_array, selected_piece, color=active_color, coord=position)
                                     piece_array = move_piece(piece_array, index=selected_piece, coord=position)
                                     # check if the piece can be promoted
-                                    if piece_array[selected_piece].can_promote() and check_promoting_move(piece_array, selected_piece, color=active_color, coord=position):
+                                    if piece_array[selected_piece].can_promote() and prom_check:
                                         promote_screen()
                                         promote_flag = True
                                         error_text = None
@@ -509,9 +510,10 @@ def handle_input(input_event):
 
                         # if not in check, just go ahead and make the move!
                         else:
+                            prom_check = check_promoting_move(piece_array, selected_piece, color=active_color, coord=position)
                             piece_array = move_piece(piece_array, index=selected_piece, coord=position)
                             # check if the piece can be promoted
-                            if piece_array[selected_piece].can_promote() and check_promoting_move(piece_array, selected_piece, color=active_color, coord=position):
+                            if piece_array[selected_piece].can_promote() and prom_check:
                                 promote_screen()
                                 promote_flag = True
                                 error_text = None
