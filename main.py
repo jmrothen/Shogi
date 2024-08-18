@@ -48,6 +48,9 @@ WHITE = (255, 255, 255)
 IVORY = (255, 255, 240)
 GRAY = (128, 128, 128)
 
+# Optional parameters
+rotate_white = False
+
 
 ##########################
 # Function to draw board #
@@ -61,6 +64,7 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
     global se_pos
     global error_text
     global check_flag
+    global rotate_white
 
     if not pa:
         global piece_array
@@ -141,15 +145,16 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
             pygame.draw.circle(screen, (255, 120, 120),
                                (width_gap + col * cell_size + cell_size // 2,
                                 height_gap_top + row * cell_size + cell_size // 2), (cell_size - 10) // 2, 0)
+
         # additionally, we'll draw a red square around the king
         king_index = 38 if active_color == 'b' else 39
-        kingx, kingy = piece_array[king_index].pos
+        king_x, king_y = piece_array[king_index].pos
+
         # draw a yellow rectangle around the king
         pygame.draw.rect(screen, (255, 200, 150),
-                         (width_gap + kingy * cell_size + 1, height_gap_top + kingx * cell_size + 1,
+                         (width_gap + king_y * cell_size + 1, height_gap_top + king_x * cell_size + 1,
                           cell_size - 1,
                           cell_size - 1), 0)
-
 
     # Draw the game board grid
     pygame.draw.rect(screen, BLACK, (width_gap, height_gap_top, board_height, board_width), 3)
@@ -207,6 +212,7 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
 
     # cycle through pieces to draw them on the board
     for index, i in enumerate(piece_array):
+
         # if the piece is selected, we'll draw it at the mouse position
         if selected_piece is not None and index == selected_piece:
             text = pygame.font.SysFont(None, 50).render(i.shorthand(), True, BLACK) if i.color == 'b' \
@@ -216,9 +222,14 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
 
         # for all other pieces, we'll draw them at their current position
         elif i.is_alive:
+
+            if rotate_white and i.color == 'w':
+                text = pygame.font.SysFont(None, 50).render(i.shorthand(), True, GRAY)
+                text = pygame.transform.rotate(text, 180)
+            else:
+                text = pygame.font.SysFont(None, 50).render(i.shorthand(), True, BLACK) if i.color == 'b' \
+                    else pygame.font.SysFont(None, 50).render(i.shorthand(), True, GRAY)
             row, col = i.pos
-            text = pygame.font.SysFont(None, 50).render(i.shorthand(), True, BLACK) if i.color == 'b' \
-                else pygame.font.SysFont(None, 50).render(i.shorthand(), True, GRAY)
             text_rect = text.get_rect(center=(width_gap + col * cell_size + cell_size // 2,
                                               height_gap_top + row * cell_size + cell_size // 2))
             screen.blit(text, text_rect)
@@ -310,7 +321,10 @@ def game_over_screen(color):
     font = pygame.font.SysFont(None, 100)
 
     # Color rename
-    cool_color = 'White' if color == 'w' else 'Black'
+    if color == "stalemate":
+        cool_color = 'Stalemate'
+    else:
+        cool_color = 'White' if color == 'w' else 'Black'
 
     # write text on the screen
     text = font.render(f"Game Over: {cool_color} wins", True, BLACK)
@@ -384,6 +398,29 @@ active_color = 'b'  # black goes first
 check_flag = False
 game_over_flag = False
 promote_flag = False
+stalemate_flag = False
+
+
+def init_vars():
+    global selected_piece
+    global piece_array
+    global error_text
+    global se_pos
+    global active_color
+    global check_flag
+    global game_over_flag
+    global promote_flag
+    global stalemate_flag
+
+    selected_piece = None
+    piece_array = create_piece_array()
+    error_text = None
+    se_pos = [None, None]
+    active_color = 'b'
+    check_flag = False
+    game_over_flag = False
+    promote_flag = False
+    stalemate_flag = False
 
 
 # Define function to handle input events
@@ -397,24 +434,23 @@ def handle_input(input_event):
     global check_flag
     global game_over_flag
     global promote_flag
+    global stalemate_flag
 
     # basic quit event
     if input_event.type == QUIT:
         pygame.quit()
         sys.exit()
 
+    # If a player clicks the R key, we'll reset the game
+    if input_event.type == KEYDOWN and input_event.key == K_r:
+        init_vars()
+
     # handle mouse clicks on game-over screen
     if game_over_flag:
         x, y = pygame.mouse.get_pos()
         if input_event.type == MOUSEBUTTONDOWN and input_event.button == 1:
             if screen_width // 5 <= x <= 2 * screen_width // 5 and screen_height // 2 + 200 <= y <= screen_height // 2 + 300:
-                piece_array = create_piece_array()
-                selected_piece = None
-                se_pos = None
-                error_text = None
-                active_color = 'b'
-                check_flag = False
-                game_over_flag = False
+                init_vars()
             elif 3 * screen_width // 5 <= x <= 4 * screen_width // 5 and screen_height // 2 + 200 <= y <= screen_height // 2 + 300:
                 pygame.quit()
                 sys.exit()
@@ -648,12 +684,20 @@ def handle_input(input_event):
         if selected_piece is not None:
             se_pos = pygame.mouse.get_pos()
 
-    # "Check" check
-    check_flag = True if is_in_check(piece_array, active_color) else False
+    # if it's not a mouse movement, we'll check for check/checkmate/stalemate
+    # Done this way to avoid checking every frame
+    else:
+        # "Check" check
+        check_flag = True if is_in_check(piece_array, active_color) else False
 
-    # general checkmate check
-    if not game_over_flag:
-        if is_in_checkmate(piece_array, active_color):
+        # general checkmate check
+        if not game_over_flag:
+            if is_in_checkmate(piece_array, active_color):
+                game_over_flag = True
+
+        # general stalemate check
+        if not all_possible_moves(piece_array, active_color):
+            stalemate_flag = True
             game_over_flag = True
 
 
@@ -662,8 +706,11 @@ while True:
     for event in pygame.event.get():
         handle_input(event)
         if game_over_flag:
-            inactive_color = 'w' if active_color == 'b' else 'b'
-            game_over_screen(color=inactive_color)
+            if stalemate_flag:
+                game_over_screen(color="stalemate")
+            else:
+                inactive_color = 'w' if active_color == 'b' else 'b'
+                game_over_screen(color=inactive_color)
         elif promote_flag:
             promote_screen()
         else:
