@@ -9,6 +9,11 @@ from board import *
 # Initialize the game
 pygame.init()
 
+pygame.mixer.init()
+
+check_sound = pygame.mixer.Sound("Assets/checksfx.wav")
+move_sound = pygame.mixer.Sound("Assets/plopsfx.wav")
+
 #####################
 # Set up the screen #
 #####################
@@ -439,11 +444,13 @@ def handle_input(input_event):
     # basic quit event
     if input_event.type == QUIT:
         pygame.quit()
+        pygame.mixer.quit()
         sys.exit()
 
     # If a player clicks the R key, we'll reset the game
     if input_event.type == KEYDOWN and input_event.key == K_r:
         init_vars()
+        return None
 
     # handle mouse clicks on game-over screen
     if game_over_flag:
@@ -453,6 +460,7 @@ def handle_input(input_event):
                 init_vars()
             elif 3 * screen_width // 5 <= x <= 4 * screen_width // 5 and screen_height // 2 + 200 <= y <= screen_height // 2 + 300:
                 pygame.quit()
+                pygame.mixer.quit()
                 sys.exit()
 
     # handle mouse clicks on promote screen
@@ -506,6 +514,7 @@ def handle_input(input_event):
                                 if s[0] == selected_piece and s[1] == position:
                                     piece_array = move_piece(piece_array, index=selected_piece, coord=position,
                                                              drop=True)
+                                    move_sound.play()
                                     selected_piece = None
                                     se_pos = None
                                     active_color = 'w' if active_color == 'b' else 'b'
@@ -518,6 +527,7 @@ def handle_input(input_event):
                         # if the player is not in check, we can just drop the piece!
                         else:
                             piece_array = move_piece(piece_array, index=selected_piece, coord=position, drop=True)
+                            move_sound.play()
                             selected_piece = None
                             se_pos = None
                             active_color = 'w' if active_color == 'b' else 'b'
@@ -550,6 +560,7 @@ def handle_input(input_event):
                                     prom_check = check_promoting_move(piece_array, selected_piece, color=active_color,
                                                                       coord=position)
                                     piece_array = move_piece(piece_array, index=selected_piece, coord=position)
+                                    move_sound.play()
                                     # check if the piece can be promoted
                                     if piece_array[selected_piece].can_promote() and prom_check:
                                         promote_screen()
@@ -574,6 +585,7 @@ def handle_input(input_event):
                             prom_check = check_promoting_move(piece_array, selected_piece, color=active_color,
                                                               coord=position)
                             piece_array = move_piece(piece_array, index=selected_piece, coord=position)
+                            move_sound.play()
                             # check if the piece can be promoted
                             if piece_array[selected_piece].can_promote() and prom_check:
                                 promote_screen()
@@ -688,7 +700,9 @@ def handle_input(input_event):
     # Done this way to avoid checking every frame
     else:
         # "Check" check
-        check_flag = True if is_in_check(piece_array, active_color) else False
+        if not check_flag and is_in_check(piece_array, active_color):
+            check_flag = True
+            check_sound.play()
 
         # general checkmate check
         if not game_over_flag:

@@ -16,13 +16,23 @@ Has the pygame version of Shogi
 
 ### To Do Notes
 
+
+Current Goals:
+- Add sound 
+  - ~~move piece~~
+  - ~~check~~
+  - checkmate + game over 
+  - capture piece
+  - drop piece
+  - bgm
+
+Stretch Goals:
 - rotate board?
-- Add background music
-- Add sound effects
+- add a timer
 - add individual piece images
-  - Maybe have a few piece sets to choose from
-- Maybe add a main menu
-- Maybe store the moves into a log output file
+  - Maybe have a few piece sets to choose from?
+- add a main menu
+- store the moves into a log output file
   - SFEN format?
 - Really basic AI
   - Maybe just random moves
