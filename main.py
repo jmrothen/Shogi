@@ -1,5 +1,4 @@
 import sys
-import time
 
 import pygame
 from pygame.locals import *
@@ -13,6 +12,8 @@ pygame.mixer.init()
 
 check_sound = pygame.mixer.Sound("Assets/checksfx.wav")
 move_sound = pygame.mixer.Sound("Assets/plopsfx.wav")
+# cap_sound = pygame.mixer.Sound("Assets/click.wav")
+lose_sound = pygame.mixer.Sound("Assets/omegalul.wav")
 
 #####################
 # Set up the screen #
@@ -404,6 +405,7 @@ check_flag = False
 game_over_flag = False
 promote_flag = False
 stalemate_flag = False
+move_log = []
 
 
 def init_vars():
@@ -416,6 +418,7 @@ def init_vars():
     global game_over_flag
     global promote_flag
     global stalemate_flag
+    global move_log
 
     selected_piece = None
     piece_array = create_piece_array()
@@ -426,6 +429,7 @@ def init_vars():
     game_over_flag = False
     promote_flag = False
     stalemate_flag = False
+    move_log = []
 
 
 # Define function to handle input events
@@ -440,6 +444,7 @@ def handle_input(input_event):
     global game_over_flag
     global promote_flag
     global stalemate_flag
+    global move_log
 
     # basic quit event
     if input_event.type == QUIT:
@@ -473,12 +478,14 @@ def handle_input(input_event):
                 selected_piece = None
                 se_pos = None
                 error_text = None
+                move_log[-1] = f"{move_log[-1]}+"
                 active_color = 'w' if active_color == 'b' else 'b'
             elif 3 * screen_width // 5 <= x <= 4 * screen_width // 5 and screen_height // 2 + 200 <= y <= screen_height // 2 + 300:
                 promote_flag = False
                 selected_piece = None
                 se_pos = None
                 error_text = None
+                move_log[-1] = f"{move_log[-1]}="
                 active_color = 'w' if active_color == 'b' else 'b'
 
     # handle mouse clicks
@@ -512,26 +519,29 @@ def handle_input(input_event):
                             safe_moves = check_safe_moves(piece_array, active_color, drop=True)
                             for s in safe_moves:
                                 if s[0] == selected_piece and s[1] == position:
-                                    piece_array = move_piece(piece_array, index=selected_piece, coord=position,
-                                                             drop=True)
+                                    piece_array, notation = move_piece(piece_array, index=selected_piece,
+                                                                       coord=position,
+                                                                       drop=True, notate=True)
                                     move_sound.play()
                                     selected_piece = None
                                     se_pos = None
                                     active_color = 'w' if active_color == 'b' else 'b'
                                     error_text = None
                                     check_flag = False  # remove the check!
+                                    move_log.append(notation)
                                     break
                             if selected_piece is not None:
                                 raise ValueError("illegal move: piece cannot stop check")
 
                         # if the player is not in check, we can just drop the piece!
                         else:
-                            piece_array = move_piece(piece_array, index=selected_piece, coord=position, drop=True)
+                            piece_array, notation = move_piece(piece_array, index=selected_piece, coord=position, drop=True, notate=True)
                             move_sound.play()
                             selected_piece = None
                             se_pos = None
                             active_color = 'w' if active_color == 'b' else 'b'
                             error_text = None
+                            move_log.append(notation)
 
                     # catch the error and reset the selected piece if something fails
                     except ValueError as e:
@@ -559,7 +569,7 @@ def handle_input(input_event):
                                 if s[0] == selected_piece and position == s[1]:
                                     prom_check = check_promoting_move(piece_array, selected_piece, color=active_color,
                                                                       coord=position)
-                                    piece_array = move_piece(piece_array, index=selected_piece, coord=position)
+                                    piece_array, notation = move_piece(piece_array, index=selected_piece, coord=position, notate=True)
                                     move_sound.play()
                                     # check if the piece can be promoted
                                     if piece_array[selected_piece].can_promote() and prom_check:
@@ -567,6 +577,7 @@ def handle_input(input_event):
                                         promote_flag = True
                                         error_text = None
                                         check_flag = False  # remove the check!
+                                        move_log.append(notation)
                                         break
                                     else:
                                         selected_piece = None
@@ -584,7 +595,8 @@ def handle_input(input_event):
                         else:
                             prom_check = check_promoting_move(piece_array, selected_piece, color=active_color,
                                                               coord=position)
-                            piece_array = move_piece(piece_array, index=selected_piece, coord=position)
+                            piece_array, notation = move_piece(piece_array, index=selected_piece, coord=position, notate=True)
+                            move_log.append(notation)
                             move_sound.play()
                             # check if the piece can be promoted
                             if piece_array[selected_piece].can_promote() and prom_check:
@@ -708,6 +720,8 @@ def handle_input(input_event):
         if not game_over_flag:
             if is_in_checkmate(piece_array, active_color):
                 game_over_flag = True
+                print("gg \n", move_log)
+                lose_sound.play()
 
         # general stalemate check
         if not all_possible_moves(piece_array, active_color):
