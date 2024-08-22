@@ -14,3 +14,4 @@ Scrapped/
 .vscode
 __pycache__
 build/
+.spec
