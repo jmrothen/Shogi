@@ -1,39 +1,32 @@
 # Shogi
 
-## Attempt at making the game of Shogi in python
 
-Everything is progress here
+Silly little attempt at making a playable game of shogi in python.
 
 ## Files
 
 ### Piece.py
 
-Declares the piece class and most of the helper functions
+Declares the piece class and most of the helper functions used
 
 ### Main.py
 
-Has the pygame version of Shogi
+Has the pygame portion and all the game logic and visualization
 
 ### To Do Notes
 
-
-Current Goals:
-- Add sound 
-  - ~~move piece~~
-  - ~~check~~
-  - checkmate + game over 
-  - capture piece
-  - drop piece
-  - bgm
-
 Stretch Goals:
-- rotate board?
-- add a timer
-- add individual piece images
-  - Maybe have a few piece sets to choose from?
-- add a main menu
-- store the moves into a log output file
-  - SFEN format?
-- Really basic AI
-  - Maybe just random moves
-  - Maybe just a few moves ahead
+- option to rotate board?
+- add a timer?
+- add individual piece images?
+  - have multiple options
+- main menu / start-up menu
+  - options would be...
+    - free play (user controls both players)
+    - computer
+      - black
+      - white
+- really basic AI to fight
+  - easy = random moves
+  - medium = really simple algorithm which prioritizes checks and promotions
+  - hard = maybe train a model?
