@@ -12,7 +12,8 @@ pip-selfcheck.json
 .idea
 Scrapped/
 build/
+build/main/
 .vscode
 __pycache__
 
-.spec
+main.spec
