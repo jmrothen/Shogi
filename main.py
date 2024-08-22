@@ -9,10 +9,10 @@ pygame.init()
 
 pygame.mixer.init()
 
-check_sound = pygame.mixer.Sound("Assets/checksfx.wav")
-move_sound = pygame.mixer.Sound("Assets/plopsfx.wav")
+check_sound = pygame.mixer.Sound(os.path.join(base_path, "Assets","checksfx.wav"))
+move_sound = pygame.mixer.Sound(os.path.join(base_path, "Assets","plopsfx.wav"))
 # cap_sound = pygame.mixer.Sound("Assets/click.wav")
-lose_sound = pygame.mixer.Sound("Assets/omegalul.wav")
+lose_sound = pygame.mixer.Sound(os.path.join(base_path, "Assets","omegalul.wav"))
 
 #####################
 # Set up the screen #
