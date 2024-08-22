@@ -1,7 +1,6 @@
-import sys
-
 import pygame
 from pygame.locals import *
+
 from piece import *
 
 # Initialize the game
@@ -9,10 +8,10 @@ pygame.init()
 
 pygame.mixer.init()
 
-check_sound = pygame.mixer.Sound(os.path.join(base_path, "Assets","checksfx.wav"))
-move_sound = pygame.mixer.Sound(os.path.join(base_path, "Assets","plopsfx.wav"))
+check_sound = pygame.mixer.Sound(os.path.join(base_path, "Assets", "checksum.wav"))
+move_sound = pygame.mixer.Sound(os.path.join(base_path, "Assets", "slops.wav"))
 # cap_sound = pygame.mixer.Sound("Assets/click.wav")
-lose_sound = pygame.mixer.Sound(os.path.join(base_path, "Assets","omegalul.wav"))
+lose_sound = pygame.mixer.Sound(os.path.join(base_path, "Assets", "omegalul.wav"))
 
 #####################
 # Set up the screen #
@@ -196,7 +195,8 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
         text = font.render(color, True, BLACK)
         text_rect = text.get_rect(center=(pocket_gap + pocket_width // 2, height_gap_top - cell_size // 7))
         screen.blit(text, text_rect if i == 0 else text.get_rect(center=(pocket_gap + pocket_width // 2,
-                                                                         height_gap_top + board_height + cell_size // 7)))
+                                                                         height_gap_top + board_height +
+                                                                         cell_size // 7)))
 
     # Add labels for columns above the board
     for i in [9, 8, 7, 6, 5, 4, 3, 2, 1]:
@@ -460,9 +460,11 @@ def handle_input(input_event):
     if game_over_flag:
         x, y = pygame.mouse.get_pos()
         if input_event.type == MOUSEBUTTONDOWN and input_event.button == 1:
-            if screen_width // 5 <= x <= 2 * screen_width // 5 and screen_height // 2 + 200 <= y <= screen_height // 2 + 300:
+            if (screen_width // 5 <= x <= 2 * screen_width // 5
+                    and screen_height // 2 + 200 <= y <= screen_height // 2 + 300):
                 init_vars()
-            elif 3 * screen_width // 5 <= x <= 4 * screen_width // 5 and screen_height // 2 + 200 <= y <= screen_height // 2 + 300:
+            elif (3 * screen_width // 5 <= x <= 4 * screen_width // 5
+                  and screen_height // 2 + 200 <= y <= screen_height // 2 + 300):
                 pygame.quit()
                 pygame.mixer.quit()
                 sys.exit()
@@ -471,7 +473,8 @@ def handle_input(input_event):
     elif promote_flag:
         x, y = pygame.mouse.get_pos()
         if input_event.type == MOUSEBUTTONDOWN and input_event.button == 1:
-            if screen_width // 5 <= x <= 2 * screen_width // 5 and screen_height // 2 + 200 <= y <= screen_height // 2 + 300:
+            if (screen_width // 5 <= x <= 2 * screen_width // 5
+                    and screen_height // 2 + 200 <= y <= screen_height // 2 + 300):
                 piece_array[selected_piece].promote()
                 promote_flag = False
                 selected_piece = None
@@ -479,7 +482,8 @@ def handle_input(input_event):
                 error_text = None
                 move_log[-1] = f"{move_log[-1]}+"
                 active_color = 'w' if active_color == 'b' else 'b'
-            elif 3 * screen_width // 5 <= x <= 4 * screen_width // 5 and screen_height // 2 + 200 <= y <= screen_height // 2 + 300:
+            elif (3 * screen_width // 5 <= x <= 4 * screen_width // 5
+                  and screen_height // 2 + 200 <= y <= screen_height // 2 + 300):
                 promote_flag = False
                 selected_piece = None
                 se_pos = None
@@ -534,7 +538,8 @@ def handle_input(input_event):
 
                         # if the player is not in check, we can just drop the piece!
                         else:
-                            piece_array, notation = move_piece(piece_array, index=selected_piece, coord=position, drop=True, notate=True)
+                            piece_array, notation = move_piece(piece_array, index=selected_piece, coord=position,
+                                                               drop=True, notate=True)
                             move_sound.play()
                             selected_piece = None
                             se_pos = None
@@ -568,7 +573,8 @@ def handle_input(input_event):
                                 if s[0] == selected_piece and position == s[1]:
                                     prom_check = check_promoting_move(piece_array, selected_piece, color=active_color,
                                                                       coord=position)
-                                    piece_array, notation = move_piece(piece_array, index=selected_piece, coord=position, notate=True)
+                                    piece_array, notation = move_piece(piece_array, index=selected_piece,
+                                                                       coord=position, notate=True)
                                     move_sound.play()
                                     # check if the piece can be promoted
                                     if piece_array[selected_piece].can_promote() and prom_check:
@@ -594,7 +600,8 @@ def handle_input(input_event):
                         else:
                             prom_check = check_promoting_move(piece_array, selected_piece, color=active_color,
                                                               coord=position)
-                            piece_array, notation = move_piece(piece_array, index=selected_piece, coord=position, notate=True)
+                            piece_array, notation = move_piece(piece_array, index=selected_piece, coord=position,
+                                                               notate=True)
                             move_log.append(notation)
                             move_sound.play()
                             # check if the piece can be promoted
