@@ -2,8 +2,7 @@ import sys
 
 import pygame
 from pygame.locals import *
-
-from board import *
+from piece import *
 
 # Initialize the game
 pygame.init()
