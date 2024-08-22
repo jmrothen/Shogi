@@ -1,7 +1,5 @@
-import pandas as pd
-import math
-import re
 import copy
+import math
 
 
 # create a function break a gap into two equal-ish parts
@@ -13,6 +11,12 @@ def adjusted_half_gap(dimension_one, dimension_two):
 
 
 # let's create functions to map from a coordinate (a7) to a board vector position
+def coord_to_notation(coord):
+    x_coord, y_coord = coord
+    x_out = x_coord + 1
+    y_out = 9 - y_coord
+    numbers_string = ''.join(map(str, [x_out, y_out]))
+    return numbers_string
 
 
 def is_pos(num):
@@ -233,11 +237,25 @@ def filter_moves(piece_array, index):
     return moves_out
 
 
+def check_ambiguous_move(piece_array, role, coord, color=None):
+    piece_array_copy = copy.deepcopy(piece_array)
+    piece_array_copy = [piece for piece in piece_array_copy if piece.role == role and piece.color == color]
+    if len(piece_array_copy) >= 2:
+        ambiguous_list = 0
+        for i in piece_array_copy:
+            if coord in i.legal_moves():
+                ambiguous_list += 1
+        if ambiguous_list >= 2:
+            return True
+    return False
+
+
 # function to perform a move
-def move_piece(piece_array, index, coord=None, drop=False):
+def move_piece(piece_array, index, coord=None, drop=False, notate=False):
     location = coord
     piece_array_test = copy.deepcopy(piece_array)
     piece = piece_array_test[index]
+    old_pos = copy.deepcopy(piece.pos)
 
     if not location:
         raise ValueError("illegal move: no target location specified")
@@ -259,9 +277,26 @@ def move_piece(piece_array, index, coord=None, drop=False):
         occupier = piece_array_test[get_occupier(piece_array_test, coord=location)]
         occupier.kill()
         piece.place(pos=location)
+        take_ind = True
     else:
         piece.place(pos=location)
-    return copy.deepcopy(piece_array_test)
+        take_ind = False
+
+    # Notation block
+    if not notate:
+        return copy.deepcopy(piece_array_test)
+    else:
+        promoted = '+' if piece.is_upgraded else ''
+        letter = str(piece.role).upper()
+        if drop:
+            takes = '*'
+        else:
+            takes = 'x' if take_ind else '-'
+        start = coord_to_notation(old_pos)
+        end = coord_to_notation(location)
+        notation = f"{promoted}{letter}{start}{takes}{end}" if check_ambiguous_move(
+            piece_array_test, piece.role, end, piece.color) else f"{promoted}{letter}{takes}{end}"
+        return [copy.deepcopy(piece_array_test), notation]
 
 
 # function to grab the index of the first dead piece of a certain color and role
