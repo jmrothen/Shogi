@@ -13,6 +13,4 @@ pip-selfcheck.json
 Scrapped/
 .vscode
 __pycache__
-
-
-/build/
+build/
