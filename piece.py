@@ -1,5 +1,13 @@
 import copy
 import math
+import os
+import sys
+
+# Determine if the application is running in a PyInstaller bundle
+if hasattr(sys, '_MEIPASS'):
+    base_path = sys._MEIPASS
+else:
+    base_path = os.path.abspath(".")
 
 
 # create a function break a gap into two equal-ish parts
