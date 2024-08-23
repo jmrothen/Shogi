@@ -739,7 +739,7 @@ def handle_input(input_event):
                 lose_sound.play()
 
         # general stalemate check
-        if not all_possible_moves(piece_array, active_color):
+        if stalemate_check(piece_array, active_color):
             stalemate_flag = True
             game_over_flag = True
 
