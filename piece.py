@@ -1,6 +1,7 @@
 import copy
 import math
 import os
+import random
 import sys
 
 # Determine if the application is running in a PyInstaller bundle
@@ -203,6 +204,7 @@ def get_occupier(piece_array, coord=None):
             return i
 
 
+# function which eliminates moves that pass through another piece
 def filter_moves(piece_array, index):
     piece = piece_array[index]
     moves_out = piece.legal_moves().copy()
@@ -245,6 +247,8 @@ def filter_moves(piece_array, index):
     return moves_out
 
 
+# function to check if a select piece-coordination move would ambiguous in notation
+# (another piece of the same color and role could move to that location)
 def check_ambiguous_move(piece_array, role, coord, color=None):
     piece_array_copy = copy.deepcopy(piece_array)
     piece_array_copy = [piece for piece in piece_array_copy if piece.role == role and piece.color == color]
@@ -315,15 +319,6 @@ def get_dead_piece(piece_array, color, role):
     return None
 
 
-# function which compiles every possible move for a player
-def all_possible_moves(piece_array, color):
-    moves = []
-    for i in piece_array:
-        if i.color == color and i.is_alive:
-            moves.extend([(piece_array.index(i), x) for x in i.legal_moves()])
-    return moves
-
-
 # function to check if a player is in check
 def is_in_check(piece_array, color):
     king_index = 38 if color == 'b' else 39
@@ -337,7 +332,7 @@ def is_in_check(piece_array, color):
     return False
 
 
-# function to supply the pieces which are attacking the king
+# function to list the pieces which are attacking the king (causing check)
 def pieces_checking_king(piece_array, color):
     king_index = 38 if color == 'b' else 39
     king_pos = piece_array[king_index].pos
@@ -370,13 +365,14 @@ def is_in_checkmate(piece_array, color):
         return False
 
 
-# make sure that the move doesn't put the player in check
+# function to make sure that a move doesn't put the player in check
 def is_safe_king_move(piece_array, index, coord=None, drop=False):
     color = piece_array[index].color
     new_piece_array = move_piece(piece_array, index, coord=coord, drop=drop)
     return not is_in_check(new_piece_array, color)
 
 
+# function which identifies all locations where a piece could be legally dropped
 def legal_drops(piece_array, index):
     piece_array_test = piece_array.copy()
     piece = piece_array_test[index]
@@ -448,6 +444,14 @@ def check_safe_moves(piece_array, color, drop=False):
     return safe_moves
 
 
+# function for stalemate check, True = STALEMATE
+def stalemate_check(piece_array, color):
+    moves = check_safe_moves(piece_array, color)
+    drops = check_safe_moves(piece_array, color, True)
+    return len(moves) + len(drops) == 0
+
+
+# check if a given move would result in a promotion opportunity
 def check_promoting_move(piece_array, index, color=None, coord=None):
     # grab active piece
     piece_array_test = copy.deepcopy(piece_array)
@@ -472,3 +476,18 @@ def check_promoting_move(piece_array, index, color=None, coord=None):
             return True
         else:
             return False
+
+
+# basic AI option
+def ai_move(piece_array, color, difficulty=1):
+    # work with the data safely
+    pa_safe = copy.deepcopy(piece_array)
+
+    if difficulty == 1:
+        # collect all possibilities
+        moves = check_safe_moves(pa_safe, color)
+        drops = check_safe_moves(pa_safe, color, True)
+        options = len(moves) + 1
+        choice = random.sample(range(options), 1)
+        out = random.sample(drops,1) if choice == options else moves[choice]
+        return out

@@ -1,6 +1,5 @@
 # Shogi
 
-
 Silly little attempt at making a playable game of shogi in python.
 
 ## Files
@@ -30,3 +29,4 @@ Stretch Goals:
   - easy = random moves
   - medium = really simple algorithm which prioritizes checks and promotions
   - hard = maybe train a model?
+- improve the promotion menu? looks kind of ugly rn 
