@@ -8,8 +8,8 @@ pygame.init()
 
 pygame.mixer.init()
 
-check_sound = pygame.mixer.Sound(os.path.join(base_path, "Assets", "checksum.wav"))
-move_sound = pygame.mixer.Sound(os.path.join(base_path, "Assets", "slops.wav"))
+check_sound = pygame.mixer.Sound(os.path.join(base_path, "Assets", "checksfx.wav"))
+move_sound = pygame.mixer.Sound(os.path.join(base_path, "Assets", "plopsfx.wav"))
 # cap_sound = pygame.mixer.Sound("Assets/click.wav")
 lose_sound = pygame.mixer.Sound(os.path.join(base_path, "Assets", "omegalul.wav"))
 
@@ -126,12 +126,21 @@ def draw_shogi_board_pygame(pa=None, save_path=None):
         else:
             # we will change the color of each cell which the selected piece can move to
             if piece_array[selected_piece].is_alive:
+
+                # get the safe moves for the selected piece
+                safe_moves = check_safe_moves(piece_array, active_color)
+                safe_moves2 = []
+                for s in safe_moves:
+                    if s[0] == selected_piece:
+                        safe_moves2.append(s[1])
+
                 for i in filter_moves(piece_array, selected_piece):
-                    row, col = i
-                    pygame.draw.rect(screen, (255, 204, 204),
-                                     (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1,
-                                      cell_size - 1,
-                                      cell_size - 1), 0)
+                    if i in safe_moves2:
+                        row, col = i
+                        pygame.draw.rect(screen, (255, 204, 204),
+                                         (width_gap + col * cell_size + 1, height_gap_top + row * cell_size + 1,
+                                          cell_size - 1,
+                                          cell_size - 1), 0)
 
             # if the piece is not alive, we'll highlight the drop locations
             else:
