@@ -365,6 +365,39 @@ def game_over_screen(color):
     pygame.display.flip()
 
 
+# function to draw main menu
+def main_menu_screen(phase=None):
+    # Fill background
+    screen.fill(BEIGE)
+
+    # big font for title sequence
+    font = pygame.font.SysFont('impact', 140, bold=True)
+
+    # write text on the screen
+    text = font.render("Shogi for Sho-gays", True, BLACK)
+    text_rect = text.get_rect(center=(screen_width // 2, screen_height // 4))
+    screen.blit(text, text_rect)
+
+    # draw the menu buttons on screen
+    pygame.draw.rect(screen, IVORY, (screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100), 0)
+    pygame.draw.rect(screen, IVORY, (3 * screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100), 0)
+    pygame.draw.rect(screen, BLACK, (screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100), 2)
+    pygame.draw.rect(screen, BLACK, (3 * screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100), 2)
+
+    # write text on the buttons
+    text2 = pygame.font.SysFont(name=None, size=60).render("Free Play", True, BLACK)
+    text_rect = text2.get_rect(
+        center=pygame.Rect(3 * screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100).center)
+    screen.blit(text2, text_rect)
+    text3 = pygame.font.SysFont(name=None, size=60).render("Computer", True, BLACK)
+    text_rect = text3.get_rect(
+        center=pygame.Rect(screen_width // 5, screen_height // 2 + 200, screen_width // 5, 100).center)
+    screen.blit(text3, text_rect)
+
+    # Update the display
+    pygame.display.flip()
+
+
 def promote_screen(color=None):
     if not color:
         color = active_color
@@ -414,6 +447,8 @@ game_over_flag = False
 promote_flag = False
 stalemate_flag = False
 move_log = []
+main_menu_flag = True
+ai_flag = False
 
 
 def init_vars():
@@ -427,6 +462,8 @@ def init_vars():
     global promote_flag
     global stalemate_flag
     global move_log
+    global main_menu_flag
+    global ai_flag
 
     selected_piece = None
     piece_array = create_piece_array()
@@ -438,6 +475,18 @@ def init_vars():
     promote_flag = False
     stalemate_flag = False
     move_log = []
+    main_menu_flag = True
+    ai_flag = False
+
+
+def perform_ai_move(piece_array, color):
+    global move_log
+    global active_color
+    move, drop_flag = ai_move(piece_array, color, 1)
+    pa_out, notation = move_piece(piece_array, move[0], move[1], drop=drop_flag, notate=True)
+    move_log.append(notation)
+    active_color = 'w' if color == 'b' else 'b'
+    return pa_out
 
 
 # Define function to handle input events
@@ -453,6 +502,8 @@ def handle_input(input_event):
     global promote_flag
     global stalemate_flag
     global move_log
+    global main_menu_flag
+    global ai_flag
 
     # basic quit event
     if input_event.type == QUIT:
@@ -464,6 +515,19 @@ def handle_input(input_event):
     if input_event.type == KEYDOWN and input_event.key == K_r:
         init_vars()
         return None
+
+    # handle main menu options
+    if main_menu_flag:
+        x, y = pygame.mouse.get_pos()
+        if input_event.type == MOUSEBUTTONDOWN and input_event.button == 1:
+            if (screen_width // 5 <= x <= 2 * screen_width // 5
+                    and screen_height // 2 + 200 <= y <= screen_height // 2 + 300):
+                main_menu_flag = False
+                ai_flag = True
+            elif (3 * screen_width // 5 <= x <= 4 * screen_width // 5
+                  and screen_height // 2 + 200 <= y <= screen_height // 2 + 300):
+                main_menu_flag = False
+                ai_flag = False
 
     # handle mouse clicks on game-over screen
     if game_over_flag:
@@ -744,11 +808,15 @@ def handle_input(input_event):
             game_over_flag = True
 
 
+pygame.time.Clock().tick(16)
+
 # Run the game loop
 while True:
     for event in pygame.event.get():
         handle_input(event)
-        if game_over_flag:
+        if main_menu_flag:
+            main_menu_screen()
+        elif game_over_flag:
             if stalemate_flag:
                 game_over_screen(color="stalemate")
             else:
@@ -756,5 +824,7 @@ while True:
                 game_over_screen(color=inactive_color)
         elif promote_flag:
             promote_screen()
+        elif ai_flag and active_color == 'w':
+            piece_array = perform_ai_move(piece_array, 'w')
         else:
             draw_shogi_board_pygame()

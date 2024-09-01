@@ -482,12 +482,19 @@ def check_promoting_move(piece_array, index, color=None, coord=None):
 def ai_move(piece_array, color, difficulty=1):
     # work with the data safely
     pa_safe = copy.deepcopy(piece_array)
+    drop_flag = False
 
     if difficulty == 1:
         # collect all possibilities
         moves = check_safe_moves(pa_safe, color)
         drops = check_safe_moves(pa_safe, color, True)
-        options = len(moves) + 1
-        choice = random.sample(range(options), 1)
-        out = random.sample(drops,1) if choice == options else moves[choice]
-        return out
+        if len(drops) > 0:
+            options = len(moves) + 1
+            choice = random.sample(range(options), 1)
+            out = random.sample(drops, 1) if choice == options else moves[choice[0]]
+            if out in drops:
+                drop_flag = True
+        else:
+            choice = random.sample(range(len(moves)), 1)
+            out = moves[choice[0]]
+        return [out, drop_flag]
